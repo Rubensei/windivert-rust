@@ -2,44 +2,90 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use winapi::shared::minwindef::BOOL;
-use winapi::um::minwinbase::LPOVERLAPPED;
-use winapi::um::winnt::{HANDLE, PVOID};
+pub mod address;
+pub mod header;
 
-include!(concat!(env!("OUT_DIR"), "/generated_bindings.rs"));
+mod bitfield;
+pub(crate) use bitfield::BitfieldUnit;
 
-#[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct WINDIVERT_ICMPHDR {
-    pub Type: u8,
-    pub Code: u8,
-    pub Checksum: u16,
-    pub Body: u32,
-}
-
-pub type PWINDIVERT_ICMPHDR = *mut WINDIVERT_ICMPHDR;
+use winapi::{
+    shared::{
+        minwindef::BOOL,
+        ntdef::{HANDLE, PVOID},
+    },
+    um::minwinbase::LPOVERLAPPED,
+};
 
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct WINDIVERT_ICMPV6HDR {
-    pub Type: u8,
-    pub Code: u8,
-    pub Checksum: u16,
-    pub Body: u32,
+#[derive(Debug, Copy, Clone)]
+pub enum WinDivertLayer {
+    Network = 0,
+    Forward = 1,
+    Flow = 2,
+    Socket = 3,
+    Reflect = 4,
 }
 
-pub type PWINDIVERT_ICMPV6HDR = *mut WINDIVERT_ICMPV6HDR;
+impl From<WinDivertLayer> for u32 {
+    fn from(value: WinDivertLayer) -> Self {
+        match value {
+            WinDivertLayer::Network => 0,
+            WinDivertLayer::Forward => 1,
+            WinDivertLayer::Flow => 2,
+            WinDivertLayer::Socket => 3,
+            WinDivertLayer::Reflect => 4,
+        }
+    }
+}
 
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct WINDIVERT_UDPHDR {
-    pub SrcPort: u16,
-    pub DstPort: u16,
-    pub Length: u16,
-    pub Checksum: u16,
+#[derive(Debug, Copy, Clone)]
+pub enum WinDivertShutdownMode {
+    None = 0,
+    Recv = 1,
+    Send = 2,
+    Both = 3,
 }
 
-pub type PWINDIVERT_UDPHDR = *mut WINDIVERT_UDPHDR;
+impl From<WinDivertShutdownMode> for u32 {
+    fn from(value: WinDivertShutdownMode) -> Self {
+        match value {
+            WinDivertShutdownMode::None => 0,
+            WinDivertShutdownMode::Recv => 1,
+            WinDivertShutdownMode::Send => 2,
+            WinDivertShutdownMode::Both => 3,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub enum WinDivertParam {
+    QueueLength = 0,
+    QueueTime = 1,
+    QueueSize = 2,
+    VersionMajor = 3,
+    VersionMinor = 4,
+}
+
+impl From<WinDivertParam> for u32 {
+    fn from(value: WinDivertParam) -> Self {
+        match value {
+            WinDivertParam::QueueLength => 0,
+            WinDivertParam::QueueTime => 1,
+            WinDivertParam::QueueSize => 2,
+            WinDivertParam::VersionMajor => 3,
+            WinDivertParam::VersionMinor => 4,
+        }
+    }
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct WINDIVERT_IOCTL_RECV {
+    pub addr: u64,
+    pub addr_len_ptr: u64,
+}
 
 extern "C" {
     pub fn WinDivertOpen(
@@ -54,7 +100,7 @@ extern "C" {
         pPacket: *mut ::std::os::raw::c_void,
         packetLen: u32,
         pRecvLen: *mut u32,
-        pAddr: *mut WINDIVERT_ADDRESS,
+        pAddr: *mut address::WINDIVERT_ADDRESS,
     ) -> BOOL;
 
     pub fn WinDivertRecvEx(
@@ -63,7 +109,7 @@ extern "C" {
         packetLen: u32,
         pRecvLen: *mut u32,
         flags: u64,
-        pAddr: *mut WINDIVERT_ADDRESS,
+        pAddr: *mut address::WINDIVERT_ADDRESS,
         pAddrLen: *mut u32,
         lpOverlapped: LPOVERLAPPED,
     ) -> BOOL;
@@ -73,7 +119,7 @@ extern "C" {
         pPacket: *const ::std::os::raw::c_void,
         packetLen: u32,
         pSendLen: *mut u32,
-        pAddr: *const WINDIVERT_ADDRESS,
+        pAddr: *const address::WINDIVERT_ADDRESS,
     ) -> BOOL;
 
     pub fn WinDivertSendEx(
@@ -82,7 +128,7 @@ extern "C" {
         packetLen: u32,
         pSendLen: *mut u32,
         flags: u64,
-        pAddr: *const WINDIVERT_ADDRESS,
+        pAddr: *const address::WINDIVERT_ADDRESS,
         addrLen: u32,
         lpOverlapped: LPOVERLAPPED,
     ) -> BOOL;
@@ -106,13 +152,13 @@ extern "C" {
     pub fn WinDivertHelperParsePacket(
         pPacket: *const ::std::os::raw::c_void,
         packetLen: u32,
-        ppIpHdr: *mut PWINDIVERT_IPHDR,
-        ppIpv6Hdr: *mut PWINDIVERT_IPV6HDR,
+        ppIpHdr: *mut header::PWINDIVERT_IPHDR,
+        ppIpv6Hdr: *mut header::PWINDIVERT_IPV6HDR,
         pProtocol: *mut u8,
-        ppIcmpHdr: *mut PWINDIVERT_ICMPHDR,
-        ppIcmpv6Hdr: *mut PWINDIVERT_ICMPV6HDR,
-        ppTcpHdr: *mut PWINDIVERT_TCPHDR,
-        ppUdpHdr: *mut PWINDIVERT_UDPHDR,
+        ppIcmpHdr: *mut header::PWINDIVERT_ICMPHDR,
+        ppIcmpv6Hdr: *mut header::PWINDIVERT_ICMPV6HDR,
+        ppTcpHdr: *mut header::PWINDIVERT_TCPHDR,
+        ppUdpHdr: *mut header::PWINDIVERT_UDPHDR,
         ppData: *mut PVOID,
         pDataLen: *mut u32,
         ppNext: *mut PVOID,
@@ -144,7 +190,7 @@ extern "C" {
     pub fn WinDivertHelperCalcChecksums(
         pPacket: *mut ::std::os::raw::c_void,
         packetLen: u32,
-        pAddr: *mut WINDIVERT_ADDRESS,
+        pAddr: *mut address::WINDIVERT_ADDRESS,
         flags: u64,
     ) -> BOOL;
 
@@ -166,7 +212,7 @@ extern "C" {
         filter: *const ::std::os::raw::c_char,
         pPacket: *const ::std::os::raw::c_void,
         packetLen: u32,
-        pAddr: *const WINDIVERT_ADDRESS,
+        pAddr: *const address::WINDIVERT_ADDRESS,
     ) -> BOOL;
 
     pub fn WinDivertHelperFormatFilter(

@@ -5,9 +5,8 @@
 //! [WinDivert]: https://www.reqrypt.org/windivert.html
 //! [WinDivert's documentation]: https://www.reqrypt.org/windivert-doc.html
 
-extern crate winapi;
-
-#[allow(dead_code)]
+#[cfg(target_os = "windows")]
 mod bindings;
 
+#[cfg(target_os = "windows")]
 pub use bindings::*;
