@@ -3,11 +3,15 @@
 #![allow(non_snake_case)]
 
 pub mod address;
+pub mod error;
 pub mod header;
 
 mod bitfield;
+use std::convert::TryFrom;
+
 pub(crate) use bitfield::BitfieldUnit;
 
+use error::WinDivertError;
 use winapi::{
     shared::{
         minwindef::BOOL,
@@ -24,6 +28,21 @@ pub enum WinDivertLayer {
     Flow = 2,
     Socket = 3,
     Reflect = 4,
+}
+
+impl TryFrom<u32> for WinDivertLayer {
+    type Error = WinDivertError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(WinDivertLayer::Network),
+            1 => Ok(WinDivertLayer::Forward),
+            2 => Ok(WinDivertLayer::Flow),
+            3 => Ok(WinDivertLayer::Socket),
+            4 => Ok(WinDivertLayer::Reflect),
+            _ => Err(WinDivertError::LayerValue),
+        }
+    }
 }
 
 impl From<WinDivertLayer> for u32 {
@@ -47,6 +66,20 @@ pub enum WinDivertShutdownMode {
     Both = 3,
 }
 
+impl TryFrom<u32> for WinDivertShutdownMode {
+    type Error = WinDivertError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(WinDivertShutdownMode::None),
+            1 => Ok(WinDivertShutdownMode::Recv),
+            2 => Ok(WinDivertShutdownMode::Send),
+            3 => Ok(WinDivertShutdownMode::Both),
+            _ => Err(WinDivertError::ShutdownValue),
+        }
+    }
+}
+
 impl From<WinDivertShutdownMode> for u32 {
     fn from(value: WinDivertShutdownMode) -> Self {
         match value {
@@ -66,6 +99,21 @@ pub enum WinDivertParam {
     QueueSize = 2,
     VersionMajor = 3,
     VersionMinor = 4,
+}
+
+impl TryFrom<u32> for WinDivertParam {
+    type Error = WinDivertError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(WinDivertParam::QueueLength),
+            1 => Ok(WinDivertParam::QueueTime),
+            2 => Ok(WinDivertParam::QueueSize),
+            3 => Ok(WinDivertParam::VersionMajor),
+            4 => Ok(WinDivertParam::VersionMinor),
+            _ => Err(WinDivertError::ParameterValue),
+        }
+    }
 }
 
 impl From<WinDivertParam> for u32 {
