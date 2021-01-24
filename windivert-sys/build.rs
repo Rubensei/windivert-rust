@@ -45,6 +45,9 @@ fn build_windivert() {
     if compiler.is_like_msvc() {
         todo!("Missing msvc build script");
     } else if compiler.is_like_gnu() {
+        if !env::var("TARGET").unwrap().contains("windows") {
+            panic!("This library only works for windows targets")
+        }
         gnu_compile(build);
     }
 }
