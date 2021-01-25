@@ -24,10 +24,14 @@ fn main() {
     if let Err(_) = std::env::var("DOCS_RS") {
         println!("cargo:rerun-if-changed=wrapper.h");
         println!("cargo:rerun-if-env-changed=WINDIVERT_LIB");
+        println!("cargo:rerun-if-env-changed=WINDIVERT_DLL_OUTPUT");
 
         if let Ok(lib_path) = env::var("WINDIVERT_LIB") {
             println!("cargo:rustc-link-search={}", &lib_path);
         } else {
+            let out_dir = env::var("OUT_DIR").unwrap();
+            println!("cargo:rerun-if-env-changed={}/WinDivert.dll", &out_dir);
+            println!("cargo:rerun-if-env-changed={}/WinDivert.lib", &out_dir);
             build_windivert();
         }
 
@@ -98,11 +102,11 @@ fn msvc_compile(build: Build) {
     );
     if let Ok(dll_save_path) = env::var("WINDIVERT_DLL_OUTPUT") {
         let _ = fs::copy(
-            format!(r#"{}\WinDivert.dll"#, &tmp_dir),
+            format!(r#"{}\WinDivert.dll"#, &out_dir),
             format!(r#"{}\WinDivert.dll"#, &dll_save_path),
         );
         let _ = fs::copy(
-            format!(r#"{}\WinDivert.lib"#, &tmp_dir),
+            format!(r#"{}\WinDivert.lib"#, &out_dir),
             format!(r#"{}\WinDivert.lib"#, &dll_save_path),
         );
     }
