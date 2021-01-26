@@ -1,6 +1,5 @@
 use std::{
     env, fs,
-    path::PathBuf,
     process::{Command, Stdio},
 };
 
@@ -22,22 +21,48 @@ fn print_env(compiler: &Tool) {
 
 fn main() {
     if let Err(_) = std::env::var("DOCS_RS") {
+        let out_dir = env::var("OUT_DIR").unwrap();
         println!("cargo:rerun-if-changed=wrapper.h");
-        println!("cargo:rerun-if-env-changed=WINDIVERT_LIB");
+        println!("cargo:rerun-if-env-changed=WINDIVERT_PATH");
         println!("cargo:rerun-if-env-changed=WINDIVERT_DLL_OUTPUT");
+        println!("cargo:rerun-if-env-changed={}/WinDivert.dll", &out_dir);
+        println!("cargo:rerun-if-env-changed={}/WinDivert.lib", &out_dir);
 
-        if let Ok(lib_path) = env::var("WINDIVERT_LIB") {
-            println!("cargo:rustc-link-search={}", &lib_path);
-        } else {
-            let out_dir = env::var("OUT_DIR").unwrap();
-            println!("cargo:rerun-if-env-changed={}/WinDivert.dll", &out_dir);
-            println!("cargo:rerun-if-env-changed={}/WinDivert.lib", &out_dir);
-            println!("cargo:rustc-link-search={}", &out_dir);
-            build_windivert();
-        }
-
-        // Link
         println!("cargo:rustc-link-lib=dylib=WinDivert");
+        println!("cargo:rustc-link-search=native={}", &out_dir);
+
+        if let Ok(lib_path) = env::var("WINDIVERT_PATH") {
+            println!("cargo:warning=Copying windivert dll, lib & sys files from the path provided if present.");
+            for f in fs::read_dir(&lib_path).unwrap() {
+                let file = f.unwrap();
+                if let Some(name) = file.file_name().to_str() {
+                    match name {
+                        "WinDivert.dll" | "WinDivert.lib" | "WinDivert32.sys"
+                        | "WinDivert64.sys" => {
+                            let _ = fs::copy(file.path(), format!("{}/{}", &out_dir, &name));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        } else {
+            println!("cargo:rustc-link-search=native={}", &out_dir);
+            println!("cargo:warning=Environment variable WINDIVERT_PATH not found, building WinDivert from source.");
+            build_windivert();
+        };
+
+        let arch = match env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
+            "x86" => "32",
+            "x86_64" => "64",
+            _ => panic!("Unsupported target architecture!"),
+        };
+
+        if let Err(_) = fs::metadata(format!("{}\\WinDivert{}.sys", &out_dir, &arch)) {
+            println!(
+                "cargo:warning=WinDivert{}.sys not found on the same directory as the dll.",
+                arch
+            )
+        }
     }
 }
 
@@ -63,15 +88,10 @@ fn msvc_compile(build: Build) {
     let out_dir = env::var("OUT_DIR").unwrap();
     println!("cargo:rustc-link-search={}", &out_dir);
 
-    let mut tmp_path = PathBuf::from(&out_dir);
-    tmp_path.push("tmp-build");
-    fs::create_dir(&tmp_path).expect("Unable to create temporary build folder");
-    let tmp_dir = tmp_path.to_string_lossy();
-
     let mut cmd = compiler.to_command();
 
-    cmd.arg(format!(r#"/Fo{}\WinDivert.obj"#, &tmp_dir));
-    cmd.arg(format!(r#"/Fd{}\WinDivert.pdb"#, &tmp_dir));
+    cmd.arg(format!(r#"/Fo{}\WinDivert.obj"#, &out_dir));
+    cmd.arg(format!(r#"/Fd{}\WinDivert.pdb"#, &out_dir));
 
     cmd.args(MSVC_ARGS.split(" "));
 
@@ -82,9 +102,9 @@ fn msvc_compile(build: Build) {
     };
     cmd.arg(format!("/MACHINE:{}", arch));
 
-    cmd.arg(format!(r#"/PDB:{}\WinDivert.pdb"#, &tmp_dir));
-    cmd.arg(format!(r#"/OUT:{}\WinDivert.dll"#, &tmp_dir));
-    cmd.arg(format!(r#"/IMPLIB:{}\WinDivert.lib"#, &tmp_dir));
+    cmd.arg(format!(r#"/PDB:{}\WinDivertDll.pdb"#, &out_dir));
+    cmd.arg(format!(r#"/OUT:{}\WinDivert.dll"#, &out_dir));
+    cmd.arg(format!(r#"/IMPLIB:{}\WinDivert.lib"#, &out_dir));
 
     eprintln!("\nCompiling windivert\n");
     if let Ok(out) = cmd.output() {
@@ -100,26 +120,18 @@ fn msvc_compile(build: Build) {
         panic!("Error compiling windivert dll.");
     }
 
-    let _ = fs::copy(
-        format!(r#"{}\WinDivert.dll"#, &tmp_dir),
-        format!(r#"{}\WinDivert.dll"#, &out_dir),
-    );
-    let _ = fs::copy(
-        format!(r#"{}\WinDivert.lib"#, &tmp_dir),
-        format!(r#"{}\WinDivert.lib"#, &out_dir),
-    );
-    if let Ok(dll_save_path) = env::var("WINDIVERT_DLL_OUTPUT") {
+    if let Ok(dylib_save_dir) = env::var("WINDIVERT_DLL_OUTPUT") {
         let _ = fs::copy(
             format!(r#"{}\WinDivert.dll"#, &out_dir),
-            format!(r#"{}\WinDivert.dll"#, &dll_save_path),
+            format!(r#"{}\WinDivert.dll"#, &dylib_save_dir),
         );
         let _ = fs::copy(
             format!(r#"{}\WinDivert.lib"#, &out_dir),
-            format!(r#"{}\WinDivert.lib"#, &dll_save_path),
+            format!(r#"{}\WinDivert.lib"#, &dylib_save_dir),
         );
-    }
-
-    fs::remove_dir_all(&tmp_path).expect("Unable to delete temporary build folder");
+    } else {
+        println!("cargo:warning=Environment variable WINDIVERT_DLL_OUTPUT not found, compiled dll & lib files will be stored on {}", &out_dir);
+    };
 }
 
 fn gnu_compile(build: Build) {
