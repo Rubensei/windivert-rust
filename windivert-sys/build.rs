@@ -32,6 +32,7 @@ fn main() {
             let out_dir = env::var("OUT_DIR").unwrap();
             println!("cargo:rerun-if-env-changed={}/WinDivert.dll", &out_dir);
             println!("cargo:rerun-if-env-changed={}/WinDivert.lib", &out_dir);
+            println!("cargo:rustc-link-search={}", &out_dir);
             build_windivert();
         }
 
@@ -55,7 +56,7 @@ fn build_windivert() {
     }
 }
 
-const MSVC_ARGS: &str = r#"/JMC /Ivendor\include /nologo /Zi /W1 /WX- /O1 /Oi /Oy- /D WIN32 /D _WINDOWS /D _USRDLL /D DLL_EXPORTS /D _WINDLL /Gm- /EHsc /MDd /GS- /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Gd /FC /TC /analyze- vendor\dll\windivert.c /link /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /NODEFAULTLIB /DEF:vendor/dll/windivert.def /MANIFEST /MANIFESTUAC:"level='asInvoker'" /MANIFESTUAC:"uiAccess='false'" /MANIFEST:EMBED /DEBUG:FASTLINK /ENTRY:WinDivertDllEntry /DYNAMICBASE /NXCOMPAT /DLL"#;
+const MSVC_ARGS: &str = r#"/Ivendor\include /ZI /JMC /nologo /W1 /WX- /diagnostics:column /O1 /Oi /D WIN32 /D NDEBUG /D _WINDOWS /D _USRDLL /D DLL_EXPORTS /D _WINDLL /Gm- /EHsc /MDd /GS- /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Gd /TC /FC /errorReport:queue vendor\dll\windivert.c /link /ERRORREPORT:QUEUE /INCREMENTAL /NOLOGO kernel32.lib advapi32.lib /NODEFAULTLIB /DEF:vendor/dll/windivert.def /MANIFEST /manifest:embed /DEBUG:FASTLINK /TLDLIB:1 /ENTRY:"WinDivertDllEntry" /DYNAMICBASE /NXCOMPAT /DLL"#;
 fn msvc_compile(build: Build) {
     let compiler = build.get_compiler();
 
@@ -73,6 +74,13 @@ fn msvc_compile(build: Build) {
     cmd.arg(format!(r#"/Fd{}\WinDivert.pdb"#, &tmp_dir));
 
     cmd.args(MSVC_ARGS.split(" "));
+
+    let arch = match env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
+        "x86" => "x86",
+        "x86_64" => "x64",
+        _ => panic!("Unsupported target architecture!"),
+    };
+    cmd.arg(format!("/MACHINE:{}", arch));
 
     cmd.arg(format!(r#"/PDB:{}\WinDivert.pdb"#, &tmp_dir));
     cmd.arg(format!(r#"/OUT:{}\WinDivert.dll"#, &tmp_dir));
