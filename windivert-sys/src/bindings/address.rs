@@ -1,3 +1,9 @@
+/*!
+WinDivert address types.
+
+For more info, refer to the [docs](https://reqrypt.org/windivert-doc.html#divert_address).
+*/
+
 use super::BitfieldUnit;
 use super::WinDivertLayer;
 

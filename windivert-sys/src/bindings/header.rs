@@ -1,5 +1,14 @@
+/*!
+WinDivert header types.
+*/
+
 use super::BitfieldUnit;
 
+/**
+IPV4 header.
+
+For more info, refer to the [docs](https://reqrypt.org/windivert-doc.html#divert_iphdr)
+*/
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct WINDIVERT_IPHDR {
@@ -52,8 +61,14 @@ impl WINDIVERT_IPHDR {
         bitfield_unit
     }
 }
+/// [IPV4 header](WINDIVERT_IPHDR) pointer type.
 pub type PWINDIVERT_IPHDR = *mut WINDIVERT_IPHDR;
 
+/**
+IPV6 header.
+
+For more info, refer to the [docs](https://reqrypt.org/windivert-doc.html#divert_ipv6hdr)
+*/
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct WINDIVERT_IPV6HDR {
@@ -138,8 +153,14 @@ impl WINDIVERT_IPV6HDR {
         bitfield_unit
     }
 }
+/// [IPV6 header](WINDIVERT_IPV6HDR) pointer type.
 pub type PWINDIVERT_IPV6HDR = *mut WINDIVERT_IPV6HDR;
 
+/**
+ICMP header.
+
+For more info, refer to the [docs](https://reqrypt.org/windivert-doc.html#divert_icmphdr)
+*/
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct WINDIVERT_ICMPHDR {
@@ -149,8 +170,14 @@ pub struct WINDIVERT_ICMPHDR {
     pub Body: u32,
 }
 
+/// [ICMP header](WINDIVERT_ICMPHDR) pointer type.
 pub type PWINDIVERT_ICMPHDR = *mut WINDIVERT_ICMPHDR;
 
+/**
+ICMPV6 header.
+
+For more info, refer to the [docs](https://reqrypt.org/windivert-doc.html#divert_icmpv6hdr)
+*/
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct WINDIVERT_ICMPV6HDR {
@@ -160,8 +187,14 @@ pub struct WINDIVERT_ICMPV6HDR {
     pub Body: u32,
 }
 
+/// [ICMPV6 header](WINDIVERT_ICMPV6HDR) pointer type.
 pub type PWINDIVERT_ICMPV6HDR = *mut WINDIVERT_ICMPV6HDR;
 
+/**
+TCP header.
+
+For more info, refer to the [docs](https://reqrypt.org/windivert-doc.html#divert_tcphdr)
+*/
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct WINDIVERT_TCPHDR {
@@ -327,8 +360,14 @@ impl WINDIVERT_TCPHDR {
         bitfield_unit
     }
 }
+/// [TCP header](WINDIVERT_TCPHDR) pointer type.
 pub type PWINDIVERT_TCPHDR = *mut WINDIVERT_TCPHDR;
 
+/**
+UDP header.
+
+For more info, refer to the [docs](https://reqrypt.org/windivert-doc.html#divert_udphdr)
+*/
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct WINDIVERT_UDPHDR {
@@ -338,4 +377,5 @@ pub struct WINDIVERT_UDPHDR {
     pub Checksum: u16,
 }
 
+/// [UDP header](WINDIVERT_UDPHDR) pointer type.
 pub type PWINDIVERT_UDPHDR = *mut WINDIVERT_UDPHDR;

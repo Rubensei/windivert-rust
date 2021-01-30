@@ -1,3 +1,7 @@
+/*!
+Helper type to represent struct bit fields.
+*/
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct BitfieldUnit<Storage, Align> {

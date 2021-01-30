@@ -1,6 +1,9 @@
 use std::error::Error;
 use std::fmt::Display;
 
+/**
+WinDivert error type wrapper.
+*/
 #[derive(Debug)]
 pub enum WinDivertError {
     LayerValue,

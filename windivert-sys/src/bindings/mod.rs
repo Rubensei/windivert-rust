@@ -3,15 +3,16 @@
 #![allow(non_snake_case)]
 
 pub mod address;
-pub mod error;
 pub mod header;
+pub mod ioctl;
 
 mod bitfield;
-use std::convert::TryFrom;
-
 pub(crate) use bitfield::BitfieldUnit;
+mod error;
+pub use error::WinDivertError;
+mod newtypes;
+pub use newtypes::*;
 
-use error::WinDivertError;
 use winapi::{
     shared::{
         minwindef::BOOL,
@@ -20,120 +21,24 @@ use winapi::{
     um::minwinbase::LPOVERLAPPED,
 };
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub enum WinDivertLayer {
-    Network = 0,
-    Forward = 1,
-    Flow = 2,
-    Socket = 3,
-    Reflect = 4,
-}
-
-impl TryFrom<u32> for WinDivertLayer {
-    type Error = WinDivertError;
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(WinDivertLayer::Network),
-            1 => Ok(WinDivertLayer::Forward),
-            2 => Ok(WinDivertLayer::Flow),
-            3 => Ok(WinDivertLayer::Socket),
-            4 => Ok(WinDivertLayer::Reflect),
-            _ => Err(WinDivertError::LayerValue),
-        }
-    }
-}
-
-impl From<WinDivertLayer> for u32 {
-    fn from(value: WinDivertLayer) -> Self {
-        match value {
-            WinDivertLayer::Network => 0,
-            WinDivertLayer::Forward => 1,
-            WinDivertLayer::Flow => 2,
-            WinDivertLayer::Socket => 3,
-            WinDivertLayer::Reflect => 4,
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub enum WinDivertShutdownMode {
-    None = 0,
-    Recv = 1,
-    Send = 2,
-    Both = 3,
-}
-
-impl TryFrom<u32> for WinDivertShutdownMode {
-    type Error = WinDivertError;
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(WinDivertShutdownMode::None),
-            1 => Ok(WinDivertShutdownMode::Recv),
-            2 => Ok(WinDivertShutdownMode::Send),
-            3 => Ok(WinDivertShutdownMode::Both),
-            _ => Err(WinDivertError::ShutdownValue),
-        }
-    }
-}
-
-impl From<WinDivertShutdownMode> for u32 {
-    fn from(value: WinDivertShutdownMode) -> Self {
-        match value {
-            WinDivertShutdownMode::None => 0,
-            WinDivertShutdownMode::Recv => 1,
-            WinDivertShutdownMode::Send => 2,
-            WinDivertShutdownMode::Both => 3,
-        }
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub enum WinDivertParam {
-    QueueLength = 0,
-    QueueTime = 1,
-    QueueSize = 2,
-    VersionMajor = 3,
-    VersionMinor = 4,
-}
-
-impl TryFrom<u32> for WinDivertParam {
-    type Error = WinDivertError;
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(WinDivertParam::QueueLength),
-            1 => Ok(WinDivertParam::QueueTime),
-            2 => Ok(WinDivertParam::QueueSize),
-            3 => Ok(WinDivertParam::VersionMajor),
-            4 => Ok(WinDivertParam::VersionMinor),
-            _ => Err(WinDivertError::ParameterValue),
-        }
-    }
-}
-
-impl From<WinDivertParam> for u32 {
-    fn from(value: WinDivertParam) -> Self {
-        match value {
-            WinDivertParam::QueueLength => 0,
-            WinDivertParam::QueueTime => 1,
-            WinDivertParam::QueueSize => 2,
-            WinDivertParam::VersionMajor => 3,
-            WinDivertParam::VersionMinor => 4,
-        }
-    }
-}
-
-#[repr(C, packed)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct WINDIVERT_IOCTL_RECV {
-    pub addr: u64,
-    pub addr_len_ptr: u64,
-}
+/// Default value for queue length parameter.
+pub const WINDIVERT_PARAM_QUEUE_LENGTH_DEFAULT: u64 = 4096;
+/// Minimum valid value for queue length parameter.
+pub const WINDIVERT_PARAM_QUEUE_LENGTH_MIN: u64 = 32;
+/// Maximum valid value for queue length parameter.
+pub const WINDIVERT_PARAM_QUEUE_LENGTH_MAX: u64 = 16384;
+/// Default value for queue time parameter.
+pub const WINDIVERT_PARAM_QUEUE_TIME_DEFAULT: u64 = 2000; /* 2s */
+/// Minimum valid value for queue time parameter.
+pub const WINDIVERT_PARAM_QUEUE_TIME_MIN: u64 = 100; /* 100ms */
+/// Maximum valid value for queue time parameter.
+pub const WINDIVERT_PARAM_QUEUE_TIME_MAX: u64 = 16000; /* 16s */
+/// Default value for queue size parameter.
+pub const WINDIVERT_PARAM_QUEUE_SIZE_DEFAULT: u64 = 4194304; /* 4MB */
+/// Minimum valid value for queue size parameter.
+pub const WINDIVERT_PARAM_QUEUE_SIZE_MIN: u64 = 65535; /* 64KB */
+/// Maximum valid value for queue size parameter.
+pub const WINDIVERT_PARAM_QUEUE_SIZE_MAX: u64 = 33554432; /* 32MB */
 
 extern "C" {
     pub fn WinDivertOpen(
@@ -185,9 +90,9 @@ extern "C" {
 
     pub fn WinDivertClose(handle: HANDLE) -> BOOL;
 
-    pub fn WinDivertSetParam(handle: HANDLE, param: u32, value: u64) -> BOOL;
+    pub fn WinDivertSetParam(handle: HANDLE, param: WinDivertParam, value: u64) -> BOOL;
 
-    pub fn WinDivertGetParam(handle: HANDLE, param: u32, pValue: *mut u64) -> BOOL;
+    pub fn WinDivertGetParam(handle: HANDLE, param: WinDivertParam, pValue: *mut u64) -> BOOL;
 }
 
 extern "C" {
@@ -239,7 +144,7 @@ extern "C" {
         pPacket: *mut ::std::os::raw::c_void,
         packetLen: u32,
         pAddr: *mut address::WINDIVERT_ADDRESS,
-        flags: u64,
+        flags: ChecksumFlags,
     ) -> BOOL;
 
     pub fn WinDivertHelperDecrementTTL(
