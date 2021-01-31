@@ -1,6 +1,6 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, u32};
 
-use super::WinDivertError;
+use super::WinDivertValueError;
 
 /**
 WinDivert layer to initialize the handle.
@@ -31,7 +31,7 @@ pub enum WinDivertLayer {
 }
 
 impl TryFrom<u32> for WinDivertLayer {
-    type Error = WinDivertError;
+    type Error = WinDivertValueError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
@@ -40,12 +40,12 @@ impl TryFrom<u32> for WinDivertLayer {
             2 => Ok(WinDivertLayer::Flow),
             3 => Ok(WinDivertLayer::Socket),
             4 => Ok(WinDivertLayer::Reflect),
-            _ => Err(WinDivertError::LayerValue),
+            _ => Err(WinDivertValueError::Layer),
         }
     }
 }
 
-impl From<WinDivertLayer> for u32 {
+impl From<WinDivertLayer> for u8 {
     fn from(value: WinDivertLayer) -> Self {
         match value {
             WinDivertLayer::Network => 0,
@@ -57,10 +57,103 @@ impl From<WinDivertLayer> for u32 {
     }
 }
 
+impl From<WinDivertLayer> for u32 {
+    fn from(value: WinDivertLayer) -> Self {
+        u8::from(value) as u32
+    }
+}
+
+/**
+WinDivert even identifiers.
+
+Each [`WinDivertLayer`] supports one or more kind of events:
+ * [`Network`](WinDivertLayer::Network) and [`Forward`](WinDivertLayer::Forward):
+   * [`WinDivertEvent::NetworkPacket`]
+ * [`Flow`](WinDivertLayer::Flow):
+   * [`WinDivertEvent::FlowStablished`]
+   * [`WinDivertEvent::FlowDeleted`]
+ * [`Socket`](WinDivertLayer::Socket):
+   * [`WinDivertEvent::SocketBind`]
+   * [`WinDivertEvent::SocketConnect`]
+   * [`WinDivertEvent::SocketListen`]
+   * [`WinDivertEvent::SocketAccept`]
+   * [`WinDivertEvent::SocketClose`]
+ * [`Reflect`](WinDivertLayer::Reflect):
+   * [`WinDivertEvent::ReflectOpen`]
+   * [`WinDivertEvent::ReflectClose`]
+*/
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub enum WinDivertEvent {
+    /// Network packet.
+    NetworkPacket = 0,
+    /// Flow established.
+    FlowStablished = 1,
+    /// Flow deleted.
+    FlowDeleted = 2,
+    /// Socket bind.
+    SocketBind = 3,
+    /// Socket connect.
+    SocketConnect = 4,
+    /// Socket listen.
+    SocketListen = 5,
+    /// Socket accept.
+    SocketAccept = 6,
+    /// Socket close.
+    SocketClose = 7,
+    /// WinDivert handle opened.
+    ReflectOpen = 8,
+    /// WinDivert handle closed.
+    ReflectClose = 9,
+}
+
+impl TryFrom<u8> for WinDivertEvent {
+    type Error = WinDivertValueError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::NetworkPacket),
+            1 => Ok(Self::FlowStablished),
+            2 => Ok(Self::FlowDeleted),
+            3 => Ok(Self::SocketBind),
+            4 => Ok(Self::SocketConnect),
+            5 => Ok(Self::SocketListen),
+            6 => Ok(Self::SocketAccept),
+            7 => Ok(Self::SocketClose),
+            8 => Ok(Self::ReflectOpen),
+            9 => Ok(Self::ReflectClose),
+            _ => Err(WinDivertValueError::Event),
+        }
+    }
+}
+
+impl From<WinDivertEvent> for u8 {
+    fn from(value: WinDivertEvent) -> Self {
+        match value {
+            WinDivertEvent::NetworkPacket => 0,
+            WinDivertEvent::FlowStablished => 1,
+            WinDivertEvent::FlowDeleted => 2,
+            WinDivertEvent::SocketBind => 3,
+            WinDivertEvent::SocketConnect => 4,
+            WinDivertEvent::SocketListen => 5,
+            WinDivertEvent::SocketAccept => 6,
+            WinDivertEvent::SocketClose => 7,
+            WinDivertEvent::ReflectOpen => 8,
+            WinDivertEvent::ReflectClose => 9,
+        }
+    }
+}
+
+impl From<WinDivertEvent> for u32 {
+    fn from(value: WinDivertEvent) -> Self {
+        u8::from(value) as u32
+    }
+}
+
 /**
 WinDivert shutdown mode.
 */
-#[repr(C)]
+#[repr(u32)]
 #[derive(Debug, Copy, Clone)]
 pub enum WinDivertShutdownMode {
     None = 0,
@@ -70,7 +163,7 @@ pub enum WinDivertShutdownMode {
 }
 
 impl TryFrom<u32> for WinDivertShutdownMode {
-    type Error = WinDivertError;
+    type Error = WinDivertValueError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
@@ -78,7 +171,7 @@ impl TryFrom<u32> for WinDivertShutdownMode {
             1 => Ok(WinDivertShutdownMode::Recv),
             2 => Ok(WinDivertShutdownMode::Send),
             3 => Ok(WinDivertShutdownMode::Both),
-            _ => Err(WinDivertError::ShutdownValue),
+            _ => Err(WinDivertValueError::Shutdown),
         }
     }
 }
@@ -131,7 +224,7 @@ pub enum WinDivertParam {
 }
 
 impl TryFrom<u32> for WinDivertParam {
-    type Error = WinDivertError;
+    type Error = WinDivertValueError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
@@ -140,7 +233,7 @@ impl TryFrom<u32> for WinDivertParam {
             2 => Ok(WinDivertParam::QueueSize),
             3 => Ok(WinDivertParam::VersionMajor),
             4 => Ok(WinDivertParam::VersionMinor),
-            _ => Err(WinDivertError::ParameterValue),
+            _ => Err(WinDivertValueError::Parameter),
         }
     }
 }
@@ -154,6 +247,115 @@ impl From<WinDivertParam> for u32 {
             WinDivertParam::VersionMajor => 3,
             WinDivertParam::VersionMinor => 4,
         }
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone)]
+#[repr(transparent)]
+/**
+Flag type required by [`WinDivertOpen()`](fn@super::WinDivertOpen). It follows a builder like style.
+
+Different flags affect how the opened handle behaves. The following flags are supported:
+ * `sniff`: This flag opens the WinDivert handle in `packet sniffing` mode. In packet sniffing mode the original packet is not dropped-and-diverted (the default) but copied-and-diverted. This mode is useful for implementing packet sniffing tools similar to those applications that currently use Winpcap.
+ * `drop`: This flag indicates that the user application does not intend to read matching packets with [`recv()`](fn@super::WinDivertRecv) (or any of it's variants), instead the packets should be silently dropped. This is useful for implementing simple packet filters using the WinDivert [filter language](https://reqrypt.org/windivert-doc.html#filter_language).
+ * `recv_only`: This flags forces the handle into receive only mode which effectively disables [`send()`](fn@super::WinDivertSend) (and any of it's variants). This means that it is possible to block/capture packets or events but not inject them.
+ * `send_only`: This flags forces the handle into send only mode which effectively disables [`recv()`](fn@super::WinDivertRecv) (and any of it's variants). This means that it is possible to inject packets or events, but not block/capture them.
+ * `no_installs`: This flags causes [`WinDivert::new()`](fn@super::WinDivertOpen) to fail with [`MissingInstall`](super@WinDivertOpenError::MissingInstall) if the WinDivert driver is not already installed. This flag is useful for querying the WinDivert driver state using [`Reflect`](super::WinDivertLayer::Reflect) layer.
+ * `fragments`: If set, the handle will capture inbound IP fragments, but not inbound reassembled IP packets. Otherwise, if not set (the default), the handle will capture inbound reassembled IP packets, but not inbound IP fragments. This flag only affects inbound packets at the [`Network`](super::WinDivertLayer::Network) layer, else the flag is ignored.
+Note that any combination of (`snif` | `drop`) or (`recv_only` | `send_only`) are considered invalid.
+
+Some layers have mandatory flags:
+ * [`WinDivertLayer::Flow`]: (`sniff` | `recv_only`)
+ * [`WinDivertLayer::Socket`]: `recv_only`
+ * [`WinDivertLayer::Reflect`]: (`sniff` | `recv_only`)
+*/
+pub struct WinDivertFlags {
+    value: u64,
+}
+
+/// WinDivertFlags builder methods.
+impl WinDivertFlags {
+    /// Creates a new flag field with all options unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets `sniff` flag.
+    pub fn set_sniff(mut self) -> Self {
+        self.value |= 0x0001;
+        self
+    }
+
+    /// Unsets `sniff` flag.
+    pub fn unset_sniff(mut self) -> Self {
+        self.value &= 0xFFFE;
+        self
+    }
+
+    /// Sets `drop` flag.
+    pub fn set_drop(mut self) -> Self {
+        self.value &= 0x0002;
+        self
+    }
+
+    /// Unsets `drop` flag.
+    pub fn unset_drop(mut self) -> Self {
+        self.value ^= 0xFFFD;
+        self
+    }
+
+    /// Sets `recv_only` flag
+    pub fn set_recv_only(mut self) -> Self {
+        self.value &= 0x0004;
+        self
+    }
+
+    /// Unsets `recv_only` flag
+    pub fn unset_recv_only(mut self) -> Self {
+        self.value ^= 0xFFFB;
+        self
+    }
+
+    /// Sets `send_only` flag.
+    pub fn set_send_only(mut self) -> Self {
+        self.value &= 0x0008;
+        self
+    }
+
+    /// Unsets `send_only` flag.
+    pub fn unset_send_only(mut self) -> Self {
+        self.value ^= 0xFFF7;
+        self
+    }
+
+    /// Sets `no_installs` flag.
+    pub fn set_no_installs(mut self) -> Self {
+        self.value &= 0x0010;
+        self
+    }
+
+    /// Unsets `no_installs` flag.
+    pub fn unset_no_installs(mut self) -> Self {
+        self.value ^= 0xFFEF;
+        self
+    }
+
+    /// Sets `fragments` flag.
+    pub fn set_fragments(mut self) -> Self {
+        self.value &= 0x0020;
+        self
+    }
+
+    /// Unsets `fragments` flag.
+    pub fn unset_fragments(mut self) -> Self {
+        self.value ^= 0xFFDF;
+        self
+    }
+}
+
+impl From<WinDivertFlags> for u64 {
+    fn from(flags: WinDivertFlags) -> Self {
+        flags.value
     }
 }
 

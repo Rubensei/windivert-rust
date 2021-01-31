@@ -2,29 +2,20 @@ use std::error::Error;
 use std::fmt::Display;
 
 /**
-WinDivert error type wrapper.
+WinDivert error for unexpected values type conversions.
 */
 #[derive(Debug)]
-pub enum WinDivertError {
-    LayerValue,
-    ParameterValue,
-    ShutdownValue,
+pub enum WinDivertValueError {
+    Layer,
+    Event,
+    Parameter,
+    Shutdown,
 }
 
-impl Display for WinDivertError {
+impl Display for WinDivertValueError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            WinDivertError::LayerValue => {
-                write!(f, "Value doesn't represent a valid WinDivertLayer")
-            }
-            WinDivertError::ParameterValue => {
-                write!(f, "Value doesn't represent a valid WinDivertPrameter")
-            }
-            WinDivertError::ShutdownValue => {
-                write!(f, "Value doesn't represent a valid WinDivertShutdownValue")
-            }
-        }
+        write!(f, "{:?}", self)
     }
 }
 
-impl Error for WinDivertError {}
+impl Error for WinDivertValueError {}
