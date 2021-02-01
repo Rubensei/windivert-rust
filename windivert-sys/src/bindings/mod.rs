@@ -44,7 +44,7 @@ extern "C" {
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_open)
     pub fn WinDivertOpen(
         filter: *const ::std::os::raw::c_char,
-        layer: u32,
+        layer: WinDivertLayer,
         priority: i16,
         flags: WinDivertFlags,
     ) -> HANDLE;
@@ -172,7 +172,7 @@ extern "C" {
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_dec_ttl)
     pub fn WinDivertHelperCompileFilter(
         filter: *const ::std::os::raw::c_char,
-        layer: u32,
+        layer: WinDivertLayer,
         object: *mut ::std::os::raw::c_char,
         objLen: u32,
         errorStr: *mut *const ::std::os::raw::c_char,
@@ -190,7 +190,7 @@ extern "C" {
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_format_filter)
     pub fn WinDivertHelperFormatFilter(
         filter: *const ::std::os::raw::c_char,
-        layer: u32,
+        layer: WinDivertLayer,
         buffer: *mut ::std::os::raw::c_char,
         bufLen: u32,
     ) -> BOOL;

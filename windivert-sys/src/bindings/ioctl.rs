@@ -3,6 +3,7 @@ WinDivert IOCTL types.
 
 This types are not used by this crate but some of them are used by the wrapper crate in order to implement wait variants for `recv` and `recv_ex`.
 */
+#![allow(missing_docs)]
 
 #[repr(C)]
 #[derive(Copy, Clone)]

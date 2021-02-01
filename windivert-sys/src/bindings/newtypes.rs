@@ -15,7 +15,7 @@ WinDivert supports several layers for diverting or capturing network packets/eve
 | `Socket`  | ✔          |             |       | ✔    | Socket operation events.                           |
 | `Reflect` |            |             | ✔     | ✔    | WinDivert handle events.                           |
 */
-#[repr(C)]
+#[repr(u32)]
 #[derive(Debug, Copy, Clone)]
 pub enum WinDivertLayer {
     /// Network packets to/from the local machine.
@@ -64,7 +64,7 @@ impl From<WinDivertLayer> for u32 {
 }
 
 /**
-WinDivert even identifiers.
+WinDivert event identifiers.
 
 Each [`WinDivertLayer`] supports one or more kind of events:
  * [`Network`](WinDivertLayer::Network) and [`Forward`](WinDivertLayer::Forward):
@@ -156,9 +156,11 @@ WinDivert shutdown mode.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone)]
 pub enum WinDivertShutdownMode {
-    None = 0,
+    /// Stops new packets being queued for [`WinDivertRecv`](fn@super::WinDivertRecv)
     Recv = 1,
+    /// Stops new packets being injected via [`WinDivertSend`](fn@super::WinDivertSend)
     Send = 2,
+    /// Equivalent to [`WinDivertShutdownMode::Recv`] | [`WinDivertShutdownMode::Send`]
     Both = 3,
 }
 
@@ -167,7 +169,6 @@ impl TryFrom<u32> for WinDivertShutdownMode {
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(WinDivertShutdownMode::None),
             1 => Ok(WinDivertShutdownMode::Recv),
             2 => Ok(WinDivertShutdownMode::Send),
             3 => Ok(WinDivertShutdownMode::Both),
@@ -179,7 +180,6 @@ impl TryFrom<u32> for WinDivertShutdownMode {
 impl From<WinDivertShutdownMode> for u32 {
     fn from(value: WinDivertShutdownMode) -> Self {
         match value {
-            WinDivertShutdownMode::None => 0,
             WinDivertShutdownMode::Recv => 1,
             WinDivertShutdownMode::Send => 2,
             WinDivertShutdownMode::Both => 3,
@@ -219,7 +219,9 @@ pub enum WinDivertParam {
     The range of valid values goes from [`WINDIVERT_PARAM_QUEUE_SIZE_MIN`](value@super::WINDIVERT_PARAM_QUEUE_SIZE_MIN) to [`WINDIVERT_PARAM_QUEUE_SIZE_MAX`](value@super::WINDIVERT_PARAM_QUEUE_SIZE_MAX), with a fefault value of [`WINDIVERT_PARAM_QUEUE_SIZE_DEFAULT`](`value@super::WINDIVERT_PARAM_QUEUE_SIZE_DEFAULT`).
     */
     QueueSize = 2,
+    /// Obtains the major version of the driver.
     VersionMajor = 3,
+    /// Obtains the minor version of the driver.
     VersionMinor = 4,
 }
 
@@ -269,9 +271,7 @@ Some layers have mandatory flags:
  * [`WinDivertLayer::Socket`]: `recv_only`
  * [`WinDivertLayer::Reflect`]: (`sniff` | `recv_only`)
 */
-pub struct WinDivertFlags {
-    value: u64,
-}
+pub struct WinDivertFlags(u64);
 
 /// WinDivertFlags builder methods.
 impl WinDivertFlags {
@@ -282,80 +282,80 @@ impl WinDivertFlags {
 
     /// Sets `sniff` flag.
     pub fn set_sniff(mut self) -> Self {
-        self.value |= 0x0001;
+        self.0 |= 0x0001;
         self
     }
 
     /// Unsets `sniff` flag.
     pub fn unset_sniff(mut self) -> Self {
-        self.value &= 0xFFFE;
+        self.0 &= !0x001;
         self
     }
 
     /// Sets `drop` flag.
     pub fn set_drop(mut self) -> Self {
-        self.value &= 0x0002;
+        self.0 |= 0x0002;
         self
     }
 
     /// Unsets `drop` flag.
     pub fn unset_drop(mut self) -> Self {
-        self.value ^= 0xFFFD;
+        self.0 &= !0x0002;
         self
     }
 
     /// Sets `recv_only` flag
     pub fn set_recv_only(mut self) -> Self {
-        self.value &= 0x0004;
+        self.0 |= 0x0004;
         self
     }
 
     /// Unsets `recv_only` flag
     pub fn unset_recv_only(mut self) -> Self {
-        self.value ^= 0xFFFB;
+        self.0 &= !0x0004;
         self
     }
 
     /// Sets `send_only` flag.
     pub fn set_send_only(mut self) -> Self {
-        self.value &= 0x0008;
+        self.0 |= 0x0008;
         self
     }
 
     /// Unsets `send_only` flag.
     pub fn unset_send_only(mut self) -> Self {
-        self.value ^= 0xFFF7;
+        self.0 &= !0x0008;
         self
     }
 
     /// Sets `no_installs` flag.
     pub fn set_no_installs(mut self) -> Self {
-        self.value &= 0x0010;
+        self.0 |= 0x0010;
         self
     }
 
     /// Unsets `no_installs` flag.
     pub fn unset_no_installs(mut self) -> Self {
-        self.value ^= 0xFFEF;
+        self.0 &= !0x0010;
         self
     }
 
     /// Sets `fragments` flag.
     pub fn set_fragments(mut self) -> Self {
-        self.value &= 0x0020;
+        self.0 |= 0x0020;
         self
     }
 
     /// Unsets `fragments` flag.
     pub fn unset_fragments(mut self) -> Self {
-        self.value ^= 0xFFDF;
+        self.0 &= !0x0020;
         self
     }
 }
 
 impl From<WinDivertFlags> for u64 {
     fn from(flags: WinDivertFlags) -> Self {
-        flags.value
+        flags.0
     }
 }
 
@@ -376,56 +376,67 @@ The different flag values are:
 pub struct ChecksumFlags(u64);
 
 impl ChecksumFlags {
+    /// Creates a new flag field with default zero value.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets `no_ip` flag
     pub fn set_no_ip(mut self) -> Self {
         self.0 |= 0x0001;
         self
     }
 
+    /// Unsets `no_ip` flag
     pub fn unset_no_ip(mut self) -> Self {
         self.0 &= 0xFFFE;
         self
     }
 
+    /// Sets `no_icmp` flag
     pub fn set_no_icmp(mut self) -> Self {
         self.0 &= 0x0002;
         self
     }
 
+    /// Unsets `no_icmp` flag
     pub fn unset_no_icmp(mut self) -> Self {
         self.0 ^= 0xFFFD;
         self
     }
 
+    /// Sets `no_icmpv6` flag
     pub fn set_no_icmpv6(mut self) -> Self {
         self.0 &= 0x0004;
         self
     }
 
+    /// Unsets `no_icmpv6` flag
     pub fn unset_no_icmpv6(mut self) -> Self {
         self.0 ^= 0xFFFB;
         self
     }
 
-    pub fn set_tcp(mut self) -> Self {
+    /// Sets `no_tcp` flag
+    pub fn set_no_tcp(mut self) -> Self {
         self.0 &= 0x0008;
         self
     }
 
-    pub fn unset_tcp(mut self) -> Self {
+    /// Unsets `no_tcp` flag
+    pub fn unset_no_tcp(mut self) -> Self {
         self.0 ^= 0xFFF7;
         self
     }
 
-    pub fn set_udp(mut self) -> Self {
+    /// Sets `no_udp` flag
+    pub fn set_no_udp(mut self) -> Self {
         self.0 &= 0x0010;
         self
     }
 
-    pub fn unset_udp(mut self) -> Self {
+    /// Unsets `no_udp` flag
+    pub fn unset_no_udp(mut self) -> Self {
         self.0 ^= 0xFFEF;
         self
     }

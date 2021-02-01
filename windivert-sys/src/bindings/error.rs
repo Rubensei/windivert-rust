@@ -6,9 +6,13 @@ WinDivert error for unexpected values type conversions.
 */
 #[derive(Debug)]
 pub enum WinDivertValueError {
+    /// Error produced for unexpected values in TryFrom<u32> for [`WinDivertLayer`](super::WinDivertLayer)
     Layer,
+    /// Error produced for unexpected values in TryFrom<u8> for [`WinDivertEvent`](super::WinDivertEvent)
     Event,
+    /// Error produced for unexpected values in TryFrom<u32> for [`WinDivertParameter`](super::WinDivertParameter)
     Parameter,
+    /// Error produced for unexpected values in TryFrom<u32> for [`WinDivertShutdownMode`](super::WinDivertShutdownMode)
     Shutdown,
 }
 

@@ -1,19 +1,18 @@
-/*!
-Helper type to represent struct bit fields.
-*/
-
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct BitfieldUnit<Storage, Align> {
     storage: Storage,
     align: [Align; 0],
 }
+
 impl<Storage, Align> BitfieldUnit<Storage, Align> {
     #[inline]
+    #[allow(dead_code)]
     pub const fn new(storage: Storage) -> Self {
         Self { storage, align: [] }
     }
 }
+
 impl<Storage, Align> BitfieldUnit<Storage, Align>
 where
     Storage: AsRef<[u8]> + AsMut<[u8]>,
