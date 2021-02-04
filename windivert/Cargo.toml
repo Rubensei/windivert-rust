@@ -24,4 +24,4 @@ winapi = {version = "0.3.9", features = [
 	"winioctl",
 	"winsvc"
 ]}
-windivert-sys = { path = "../windivert-sys" }
+windivert-sys = { version = "0.5.1", path = "../windivert-sys" }
