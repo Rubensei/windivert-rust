@@ -4,6 +4,7 @@
 Wrapper arround [`windivert_sys`] ffi crate.
 */
 
+mod address;
 mod error;
 mod packet;
 
@@ -13,7 +14,9 @@ use windivert_sys as wd;
 
 pub use error::WinDivertError;
 pub use packet::*;
-pub use wd::{WinDivertFlags, WinDivertLayer, WinDivertParam, WinDivertShutdownMode};
+pub use wd::{
+    WinDivertEvent, WinDivertFlags, WinDivertLayer, WinDivertParam, WinDivertShutdownMode,
+};
 
 use std::{
     convert::TryFrom,
@@ -115,10 +118,10 @@ impl WinDivert {
         &self,
         mut buffer: Vec<u8>,
         addr_buffer: Vec<WINDIVERT_ADDRESS>,
-    ) -> Vec<Packet> {
+    ) -> Vec<WinDivertPacket> {
         let mut packets = Vec::new();
         for addr in addr_buffer.into_iter() {
-            packets.push(Packet {
+            packets.push(WinDivertPacket::from(WinDivertRawPacket {
                 address: addr,
                 data: match self.layer {
                     WinDivertLayer::Network | WinDivertLayer::Forward => {
@@ -148,12 +151,12 @@ impl WinDivert {
                     }
                     _ => Vec::new(),
                 },
-            });
+            }));
         }
         packets
     }
 
-    pub fn recv(&self, buffer_size: usize) -> Result<Packet, WinDivertError> {
+    pub fn recv(&self, buffer_size: usize) -> Result<WinDivertPacket, WinDivertError> {
         let mut packet_length = 0;
         let mut buffer = vec![0u8; buffer_size];
         let mut addr = WINDIVERT_ADDRESS::default();
@@ -168,10 +171,10 @@ impl WinDivert {
         } == TRUE
         {
             buffer.truncate(packet_length as usize);
-            Ok(Packet {
+            Ok(WinDivertPacket::from(WinDivertRawPacket {
                 address: addr,
                 data: buffer,
-            })
+            }))
         } else {
             let err = WinDivertRecvError::try_from(std::io::Error::last_os_error());
             match err {
@@ -185,7 +188,7 @@ impl WinDivert {
         &self,
         buffer_size: usize,
         packet_count: usize,
-    ) -> Result<Option<Vec<Packet>>, WinDivertError> {
+    ) -> Result<Option<Vec<WinDivertPacket>>, WinDivertError> {
         let mut packet_length = 0;
         let mut buffer = vec![0u8; buffer_size];
 
@@ -222,7 +225,7 @@ impl WinDivert {
         &self,
         buffer_size: usize,
         timeout_ms: u32,
-    ) -> Result<Option<Packet>, WinDivertError> {
+    ) -> Result<Option<WinDivertPacket>, WinDivertError> {
         let mut packet_length = 0u32;
         let mut buffer = vec![0u8; buffer_size];
 
@@ -287,10 +290,10 @@ impl WinDivert {
             }
         }
         buffer.truncate(packet_length as usize);
-        Ok(Some(Packet {
+        Ok(Some(WinDivertPacket::from(WinDivertRawPacket {
             address: addr,
             data: buffer,
-        }))
+        })))
     }
 
     pub fn recv_ex_wait(
@@ -298,7 +301,7 @@ impl WinDivert {
         buffer_size: usize,
         timeout_ms: u32,
         packet_count: usize,
-    ) -> Result<Option<Vec<Packet>>, WinDivertError> {
+    ) -> Result<Option<Vec<WinDivertPacket>>, WinDivertError> {
         let mut packet_length = 0u32;
         let mut buffer = vec![0u8; buffer_size * packet_count];
 
@@ -369,8 +372,9 @@ impl WinDivert {
         Ok(Some(self.parse_packets(buffer, addr_buffer)))
     }
 
-    pub fn send(&self, mut packet: Packet) -> Result<u32, WinDivertError> {
+    pub fn send(&self, packet: WinDivertPacket) -> Result<u32, WinDivertError> {
         let mut injected_length = 0;
+        let mut packet: WinDivertRawPacket = packet.into();
         unsafe {
             try_divert!(wd::WinDivertSend(
                 self.handle,
@@ -383,12 +387,13 @@ impl WinDivert {
         Ok(injected_length)
     }
 
-    pub fn send_ex(&self, mut data: Vec<Packet>) -> Result<u32, WinDivertError> {
+    pub fn send_ex(&self, mut data: Vec<WinDivertPacket>) -> Result<u32, WinDivertError> {
         let packet_count = data.len();
         let mut injected_length = 0;
         let mut packet_buffer = Vec::new();
         let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::new();
-        data.drain(..).for_each(|mut packet| {
+        data.drain(..).for_each(|packet| {
+            let mut packet: WinDivertRawPacket = packet.into();
             packet_buffer.append(&mut packet.data);
             address_buffer.push(packet.address);
         });
