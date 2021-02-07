@@ -176,7 +176,7 @@ impl WINDIVERT_ADDRESS {
     }
     #[inline]
     /// Setter for the handle [`event`](super::WinDivertEvent)
-    pub fn set_event(&mut self, val: u32) {
+    pub fn set_event(&mut self, val: WinDivertEvent) {
         self.addr_bitfield.set(8usize, 8u8, u32::from(val) as u64)
     }
     #[inline]
