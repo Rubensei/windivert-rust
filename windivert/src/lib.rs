@@ -1,5 +1,5 @@
 // TODO: #[deny(missing_docs)]
-// TODO: #![warn(missing_docs)]
+#![warn(missing_docs)]
 /*!
 Wrapper arround [`windivert_sys`] ffi crate.
 */
@@ -63,6 +63,7 @@ pub enum CloseAction {
     Nothing,
 }
 
+/// Main wrapper struct around windivert functionalities.
 pub struct WinDivert {
     handle: HANDLE,
     layer: WinDivertLayer,
@@ -70,6 +71,7 @@ pub struct WinDivert {
 }
 
 impl WinDivert {
+    /// Open a handle using the specified parameters.
     pub fn new(
         filter: String,
         layer: WinDivertLayer,
@@ -156,6 +158,7 @@ impl WinDivert {
         packets
     }
 
+    /// Single packet blocking recv function.
     pub fn recv(&self, buffer_size: usize) -> Result<WinDivertPacket, WinDivertError> {
         let mut packet_length = 0;
         let mut buffer = vec![0u8; buffer_size];
@@ -184,6 +187,7 @@ impl WinDivert {
         }
     }
 
+    /// Batched blocking recv function.
     pub fn recv_ex(
         &self,
         buffer_size: usize,
@@ -221,6 +225,7 @@ impl WinDivert {
         }
     }
 
+    /// Single packet recv with timout.
     pub fn recv_wait(
         &self,
         buffer_size: usize,
@@ -296,6 +301,7 @@ impl WinDivert {
         })))
     }
 
+    /// Bacthed recv function with timeout.
     pub fn recv_ex_wait(
         &self,
         buffer_size: usize,
@@ -372,6 +378,7 @@ impl WinDivert {
         Ok(Some(self.parse_packets(buffer, addr_buffer)))
     }
 
+    /// Single packet send function.
     pub fn send(&self, packet: WinDivertPacket) -> Result<u32, WinDivertError> {
         let mut injected_length = 0;
         let mut packet: WinDivertRawPacket = packet.into();
@@ -387,6 +394,7 @@ impl WinDivert {
         Ok(injected_length)
     }
 
+    /// Batched send function.
     pub fn send_ex(&self, mut data: Vec<WinDivertPacket>) -> Result<u32, WinDivertError> {
         let packet_count = data.len();
         let mut injected_length = 0;
@@ -412,6 +420,7 @@ impl WinDivert {
         Ok(injected_length)
     }
 
+    /// Handle close function.
     pub fn close(&mut self, action: CloseAction) -> IOResult<()> {
         unsafe { try_win!(wd::WinDivertClose(self.handle)) };
         match action {
@@ -420,6 +429,7 @@ impl WinDivert {
         }
     }
 
+    /// Methods that allows to query the driver for parameters.
     pub fn get_param(&self, param: WinDivertParam) -> Result<u64, WinDivertError> {
         let mut value = 0;
         unsafe {
@@ -428,16 +438,26 @@ impl WinDivert {
         Ok(value)
     }
 
+    /// Method that allows setting driver parameters.
     pub fn set_param(&self, param: WinDivertParam, value: u64) -> Result<(), WinDivertError> {
-        unsafe { try_divert!(wd::WinDivertSetParam(self.handle, param.into(), value)) }
-        Ok(())
+        match param {
+            WinDivertParam::VersionMajor | WinDivertParam::VersionMinor => {
+                Err(WinDivertError::Parameter)
+            }
+            _ => {
+                unsafe { try_divert!(wd::WinDivertSetParam(self.handle, param.into(), value)) }
+                Ok(())
+            }
+        }
     }
 
+    /// Shutdown function.
     pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> IOResult<()> {
         unsafe { try_win!(wd::WinDivertShutdown(self.handle, mode.into())) };
         Ok(())
     }
 
+    /// Method that tries to uninstall WinDivert driver.
     pub fn uninstall() -> IOResult<()> {
         let service_name = std::ffi::CString::new("WinDivert").unwrap();
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();

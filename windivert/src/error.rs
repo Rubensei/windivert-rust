@@ -10,14 +10,16 @@ WinDivert error type.
 pub enum WinDivertError {
     /// Unexpected value in type conversions.
     Value(WinDivertValueError),
-    /// Speciffic errors for [`WinDivertOpen()`](fn@super::WinDivertOpen).
+    /// Specific errors for [`WinDivert::new()`](fn@super::WinDivert::new).
     Open(WinDivertOpenError),
-    /// Speciffic errors for [`WinDivertRecv()`](fn@super::WinDivertRecv).
+    /// Specific errors for [`WinDivert::recv()`](fn@super::WinDivert::recv).
     Recv(WinDivertRecvError),
     /// Error for nul terminated filter strings.
     NullError(NulError),
     /// Generic OS error.
     OSError(std::io::Error),
+    /// Error indicating that a wrong parameter was used in [`set_param()`](fn@super::WinDivert::set_param)
+    Parameter,
 }
 
 impl From<WinDivertValueError> for WinDivertError {

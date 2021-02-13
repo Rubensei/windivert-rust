@@ -10,19 +10,30 @@ pub(crate) struct WinDivertRawPacket {
 }
 
 #[derive(Debug)]
+/// Packet type returned by [`recv`](fn@super::WinDivert::recv) function.
 pub enum WinDivertPacket {
+    /// Packet type returned by handles using [`WinDivertLayer::Network`](super::WinDivertLayer::Network).
     Network {
+        /// WinDivert data associated with the packet.
         addr: WinDivertNetworkData,
+        /// Raw captured data.
         data: Vec<u8>,
     },
+    /// Packet type returned by handles using [`WinDivertLayer::Flow`](super::WinDivertLayer::Flow).
     Flow {
+        /// WinDivert data associated with the packet.
         addr: WinDivertFlowData,
     },
+    /// Packet type returned by handles using [`WinDivertLayer::Socket`](super::WinDivertLayer::Socket).
     Socket {
+        /// WinDivert data associated with the packet.
         addr: WinDivertSocketData,
     },
+    /// Packet type returned by handles using [`WinDivertLayer::Reflect`](super::WinDivertLayer::Reflect).
     Reflect {
+        /// WinDivert data associated with the packet.
         addr: WinDivertReflectData,
+        /// Object string representation of the filter used to open the handle.
         filter: Vec<u8>,
     },
 }
