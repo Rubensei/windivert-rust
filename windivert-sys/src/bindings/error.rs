@@ -10,7 +10,7 @@ pub enum WinDivertValueError {
     Layer,
     /// Error produced for unexpected values in TryFrom<u8> for [`WinDivertEvent`](super::WinDivertEvent)
     Event,
-    /// Error produced for unexpected values in TryFrom<u32> for [`WinDivertParameter`](super::WinDivertParameter)
+    /// Error produced for unexpected values in TryFrom<u32> for [`WinDivertParameter`](super::WinDivertParam)
     Parameter,
     /// Error produced for unexpected values in TryFrom<u32> for [`WinDivertShutdownMode`](super::WinDivertShutdownMode)
     Shutdown,
