@@ -1,7 +1,7 @@
 # WinDivert 2 Rust Wrapper
 [![GitHub](https://img.shields.io/github/license/Rubensei/windivert-rust?color=blue)](https://raw.githubusercontent.com/rust-lang/docs.rs/master/LICENSE)
 
-**Note**: This is a work in project, so the crates won't follow semantic versioning until 1.0.0 release, so any version change below 1.0.0 might introduce breaking changes in the API or the crate usage in general.
+**Note**: This is a work in process, so the crates won't follow semantic versioning until 1.0.0 release, so any version change below 1.0.0 might introduce breaking changes in the API or the crate usage in general.
 
 This projects allows you to use [WinDivert](https://www.reqrypt.org/windivert.html) from rust. It consists of two crates:
  * `windivert-sys` [![crates.io](https://img.shields.io/crates/v/windivert-sys)](https://crates.io/crates/windivert-sys) [![docs](https://docs.rs/windivert-sys/badge.svg)](https://docs.rs/windivert-sys/): Crate providing raw bindings to the WinDivert user mode library.
