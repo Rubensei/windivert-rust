@@ -19,7 +19,61 @@ fn print_env(compiler: &Tool) {
     eprintln!("");
 }
 
+fn generate_windows_bindings() {
+    windows::build!(
+        Windows::Win32::Debug::{
+            WIN32_ERROR,
+        },
+        Windows::Devices::Custom::{
+            IOControlAccessMode,
+            IOControlBufferingMethod,
+            IOControlCode,
+        },
+        Windows::Win32::FileSystem::{
+            FILE_ACCESS_FLAGS,
+            CancelIo,
+        },
+        Windows::Win32::Security::{
+            SC_HANDLE,
+            SERVICE_CHANGE_CONFIG,
+            SERVICE_CONTROL_STOP,
+            SERVICE_INTERROGATE,
+            SERVICE_STATUS,
+            SERVICE_QUERY_CONFIG,
+            SERVICE_QUERY_STATUS,
+            SERVICE_START,
+            SERVICE_STOP,
+            SERVICE_USER_DEFINED_CONTROL,
+            CloseServiceHandle,
+            ControlService,
+            OpenServiceA,
+            OpenSCManagerA,
+        },
+        Windows::Win32::SystemServices::{
+            BOOL,
+            FALSE,
+            FILE_DEVICE_NETWORK,
+            HANDLE,
+            METHOD_OUT_DIRECT,
+            OVERLAPPED,
+            TRUE,
+            WAIT_RETURN_CAUSE,
+            CreateEventA,
+            DeviceIoControl,
+            GetOverlappedResultEx,
+            TlsAlloc,
+            TlsGetValue,
+            TlsSetValue,
+        },
+        Windows::Win32::WindowsClustering::{
+            CLCTL_CODES,
+        },
+    );
+}
+
 fn main() {
+    generate_windows_bindings();
+
     if let Err(_) = std::env::var("DOCS_RS") {
         let out_dir = env::var("OUT_DIR").unwrap();
         println!("cargo:rerun-if-changed=wrapper.h");

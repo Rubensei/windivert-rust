@@ -9,6 +9,10 @@ mod error;
 mod packet;
 
 use error::*;
+use wd::windows::Windows::{
+    Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
+    Win32::{Debug::*, FileSystem::*, Security::*, SystemServices::*},
+};
 use wd::{address::WINDIVERT_ADDRESS, ioctl::WINDIVERT_IOCTL_RECV};
 use windivert_sys as wd;
 
@@ -21,39 +25,55 @@ pub use wd::{
 use std::{
     convert::TryFrom,
     ffi::{c_void, CString},
-    io::Result as IOResult,
     mem::MaybeUninit,
 };
 
 use etherparse::{InternetSlice, SlicedPacket};
-
-use winapi::{
-    shared::minwindef::{FALSE, TRUE},
-    um::{
-        handleapi::INVALID_HANDLE_VALUE,
-        minwinbase::OVERLAPPED,
-        winnt::HANDLE,
-        winsvc::{self, SC_HANDLE, SERVICE_STATUS},
-    },
-};
+use windows::{Error as WinError, Result as WinResult, HRESULT};
 
 macro_rules! try_win {
-    ($expr:expr) => {
-        if $expr == winapi::shared::minwindef::FALSE {
-            return Err(std::io::Error::last_os_error());
+    ($expr:expr) => {{
+        let x = $expr;
+        if x == FALSE {
+            return Err(WinError::fast_error(HRESULT::from_win32(
+                std::io::Error::last_os_error().raw_os_error().unwrap() as u32,
+            )));
+        } else {
+            x
         }
-    };
+    }};
+
+    ($expr:expr, $value:expr) => {{
+        let x = $expr;
+        if x == $value {
+            return Err(WinError::fast_error(HRESULT::from_win32(
+                std::io::Error::last_os_error().raw_os_error().unwrap() as u32,
+            )));
+        } else {
+            x
+        }
+    }};
 }
 
 macro_rules! try_divert {
     ($expr:expr) => {
-        if $expr == winapi::shared::minwindef::FALSE {
+        if $expr == FALSE {
             return Err(std::io::Error::last_os_error().into());
         }
     };
 }
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
+
+const SERVICE_ALL_ACCESS: u32 = FILE_ACCESS_FLAGS::STANDARD_RIGHTS_REQUIRED.0
+    | SERVICE_CHANGE_CONFIG
+    | SERVICE_CONTROL_STOP
+    | SERVICE_INTERROGATE
+    | SERVICE_QUERY_CONFIG
+    | SERVICE_QUERY_STATUS
+    | SERVICE_START
+    | SERVICE_STOP
+    | SERVICE_USER_DEFINED_CONTROL;
 
 /// Action parameter for  [`WinDivert::close()`](`fn@WinDivert::close`)
 pub enum CloseAction {
@@ -79,10 +99,10 @@ impl WinDivert {
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
         let filter = CString::new(filter)?;
-        let windivert_tls_idx = unsafe { winapi::um::processthreadsapi::TlsAlloc() };
+        let windivert_tls_idx = unsafe { TlsAlloc() };
         let handle =
             unsafe { wd::WinDivertOpen(filter.as_ptr(), layer.into(), priority, flags.into()) };
-        if handle == INVALID_HANDLE_VALUE {
+        if handle.is_invalid() {
             match WinDivertOpenError::try_from(std::io::Error::last_os_error()) {
                 Ok(err) => Err(WinDivertError::Open(err)),
                 Err(err) => Err(WinDivertError::OSError(err)),
@@ -96,21 +116,15 @@ impl WinDivert {
         }
     }
 
-    fn get_event(tls_idx: u32) -> Result<winapi::um::winnt::HANDLE, WinDivertError> {
-        let mut event = unsafe { winapi::um::processthreadsapi::TlsGetValue(tls_idx) };
-        if event == std::ptr::null_mut() {
-            event = unsafe {
-                winapi::um::synchapi::CreateEventA(
-                    std::ptr::null_mut(),
-                    false as i32,
-                    false as i32,
-                    std::ptr::null_mut(),
-                )
-            };
-            if event == std::ptr::null_mut() {
+    fn get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
+        let mut event = HANDLE::NULL;
+        event.0 = unsafe { TlsGetValue(tls_idx) } as isize;
+        if event.is_null() {
+            let event = unsafe { CreateEventA(std::ptr::null_mut(), false, false, PSTR::NULL) };
+            if event.is_null() {
                 return Err(std::io::Error::last_os_error().into());
             } else {
-                unsafe { winapi::um::processthreadsapi::TlsSetValue(tls_idx, event) }
+                unsafe { TlsSetValue(tls_idx, event.0 as *mut c_void) }
             };
         };
         Ok(event)
@@ -234,7 +248,7 @@ impl WinDivert {
         let mut packet_length = 0u32;
         let mut buffer = vec![0u8; buffer_size];
 
-        let mut overlapped: winapi::um::minwinbase::OVERLAPPED = unsafe { std::mem::zeroed() };
+        let mut overlapped: OVERLAPPED = unsafe { std::mem::zeroed() };
         overlapped.hEvent = WinDivert::get_event(self.tls_idx)?;
 
         let mut ioctl: WINDIVERT_IOCTL_RECV = unsafe { std::mem::zeroed() };
@@ -243,14 +257,17 @@ impl WinDivert {
         ioctl.addr_len_ptr = std::ptr::null() as *const c_void as u64;
 
         let res = unsafe {
-            winapi::um::ioapiset::DeviceIoControl(
-                self.handle as winapi::um::winnt::HANDLE,
-                winapi::um::winioctl::CTL_CODE(
-                    winapi::um::winioctl::FILE_DEVICE_NETWORK,
+            DeviceIoControl(
+                self.handle,
+                IOControlCode::CreateIOControlCode(
+                    FILE_DEVICE_NETWORK as u16,
                     0x923,
-                    winapi::um::winioctl::METHOD_OUT_DIRECT,
-                    winapi::um::winnt::FILE_READ_DATA,
-                ),
+                    IOControlAccessMode::Read,
+                    IOControlBufferingMethod::DirectOutput,
+                )
+                .unwrap()
+                .ControlCode()
+                .unwrap(),
                 &mut ioctl as *mut _ as *mut c_void,
                 std::mem::size_of::<WINDIVERT_IOCTL_RECV>() as u32,
                 buffer.as_mut_ptr() as *mut c_void,
@@ -262,29 +279,31 @@ impl WinDivert {
 
         if res == FALSE
             && std::io::Error::last_os_error().raw_os_error().unwrap() as u32
-                == winapi::shared::winerror::ERROR_IO_PENDING
+                == WIN32_ERROR::ERROR_IO_PENDING.0
         {
             loop {
                 let res = unsafe {
-                    winapi::um::ioapiset::GetOverlappedResultEx(
-                        self.handle as *mut c_void,
+                    GetOverlappedResultEx(
+                        self.handle,
                         &mut overlapped,
                         &mut packet_length,
                         timeout_ms,
-                        true as i32,
+                        true,
                     )
                 };
                 if res == TRUE {
                     break;
                 } else {
-                    match std::io::Error::last_os_error().raw_os_error().unwrap() as u32 {
-                        winapi::shared::winerror::WAIT_TIMEOUT => {
-                            unsafe { winapi::um::ioapiset::CancelIo(self.handle as *mut c_void) };
+                    let return_cause =
+                        (std::io::Error::last_os_error().raw_os_error().unwrap() as u32).into();
+                    match return_cause {
+                        WAIT_RETURN_CAUSE::WAIT_TIMEOUT => {
+                            unsafe { CancelIo(self.handle) };
                             return Ok(None);
                         }
-                        winapi::um::winbase::WAIT_IO_COMPLETION => break,
+                        WAIT_RETURN_CAUSE::WAIT_IO_COMPLETION => break,
                         value => {
-                            if let Ok(err) = WinDivertRecvError::try_from(value as i32) {
+                            if let Ok(err) = WinDivertRecvError::try_from(value.0 as i32) {
                                 return Err(WinDivertError::Recv(err));
                             } else {
                                 panic!("This arm should never be reached")
@@ -311,7 +330,7 @@ impl WinDivert {
         let mut packet_length = 0u32;
         let mut buffer = vec![0u8; buffer_size * packet_count];
 
-        let mut overlapped: winapi::um::minwinbase::OVERLAPPED = unsafe { std::mem::zeroed() };
+        let mut overlapped: OVERLAPPED = unsafe { std::mem::zeroed() };
         overlapped.hEvent = WinDivert::get_event(self.tls_idx)?;
 
         let mut ioctl: WINDIVERT_IOCTL_RECV = unsafe { std::mem::zeroed() };
@@ -321,14 +340,17 @@ impl WinDivert {
         ioctl.addr = &mut addr_buffer[0] as *mut _ as u64;
         ioctl.addr_len_ptr = &mut addr_len as *mut u32 as u64;
         let res = unsafe {
-            winapi::um::ioapiset::DeviceIoControl(
-                self.handle as winapi::um::winnt::HANDLE,
-                winapi::um::winioctl::CTL_CODE(
-                    winapi::um::winioctl::FILE_DEVICE_NETWORK,
+            DeviceIoControl(
+                self.handle,
+                IOControlCode::CreateIOControlCode(
+                    FILE_DEVICE_NETWORK as u16,
                     0x923,
-                    winapi::um::winioctl::METHOD_OUT_DIRECT,
-                    winapi::um::winnt::FILE_READ_DATA,
-                ),
+                    IOControlAccessMode::Read,
+                    IOControlBufferingMethod::DirectOutput,
+                )
+                .unwrap()
+                .ControlCode()
+                .unwrap(),
                 &mut ioctl as *mut _ as *mut c_void,
                 std::mem::size_of::<WINDIVERT_IOCTL_RECV>() as u32,
                 buffer.as_mut_ptr() as *mut c_void,
@@ -340,12 +362,12 @@ impl WinDivert {
 
         if res == FALSE
             && std::io::Error::last_os_error().raw_os_error().unwrap() as u32
-                == winapi::shared::winerror::ERROR_IO_PENDING
+                == WIN32_ERROR::ERROR_IO_PENDING.0
         {
             loop {
                 let res = unsafe {
-                    winapi::um::ioapiset::GetOverlappedResultEx(
-                        self.handle as *mut c_void,
+                    GetOverlappedResultEx(
+                        self.handle,
                         &mut overlapped,
                         &mut packet_length,
                         timeout_ms,
@@ -356,14 +378,16 @@ impl WinDivert {
                 if res == TRUE {
                     break;
                 } else {
-                    match std::io::Error::last_os_error().raw_os_error().unwrap() as u32 {
-                        winapi::shared::winerror::WAIT_TIMEOUT => {
-                            unsafe { winapi::um::ioapiset::CancelIo(self.handle as *mut c_void) };
+                    let return_cause =
+                        (std::io::Error::last_os_error().raw_os_error().unwrap() as u32).into();
+                    match return_cause {
+                        WAIT_RETURN_CAUSE::WAIT_TIMEOUT => {
+                            unsafe { CancelIo(self.handle) };
                             return Ok(None);
                         }
-                        winapi::um::winbase::WAIT_IO_COMPLETION => break,
+                        WAIT_RETURN_CAUSE::WAIT_IO_COMPLETION => break,
                         value => {
-                            if let Ok(err) = WinDivertRecvError::try_from(value as i32) {
+                            if let Ok(err) = WinDivertRecvError::try_from(value.0 as i32) {
                                 return Err(WinDivertError::Recv(err));
                             } else {
                                 panic!("This arm should never be reached")
@@ -421,7 +445,7 @@ impl WinDivert {
     }
 
     /// Handle close function.
-    pub fn close(&mut self, action: CloseAction) -> IOResult<()> {
+    pub fn close(&mut self, action: CloseAction) -> WinResult<()> {
         unsafe { try_win!(wd::WinDivertClose(self.handle)) };
         match action {
             CloseAction::Uninstall => WinDivert::uninstall(),
@@ -452,36 +476,26 @@ impl WinDivert {
     }
 
     /// Shutdown function.
-    pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> IOResult<()> {
+    pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> WinResult<()> {
         unsafe { try_win!(wd::WinDivertShutdown(self.handle, mode.into())) };
         Ok(())
     }
 
     /// Method that tries to uninstall WinDivert driver.
-    pub fn uninstall() -> IOResult<()> {
-        let service_name = std::ffi::CString::new("WinDivert").unwrap();
+    pub fn uninstall() -> WinResult<()> {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
         unsafe {
-            let manager: SC_HANDLE = winsvc::OpenSCManagerA(
-                std::ptr::null(),
-                std::ptr::null(),
-                winsvc::SC_MANAGER_ALL_ACCESS,
+            let manager = try_win!(
+                OpenSCManagerA(PSTR::NULL, PSTR::NULL, SERVICE_ALL_ACCESS),
+                SC_HANDLE::NULL
             );
-            if manager == std::ptr::null_mut() {
-                return Err(std::io::Error::last_os_error());
-            }
-            let service: SC_HANDLE =
-                winsvc::OpenServiceA(manager, service_name.as_ptr(), winsvc::SERVICE_ALL_ACCESS);
-            if service == std::ptr::null_mut() {
-                return Err(std::io::Error::last_os_error());
-            }
-            try_win!(winsvc::ControlService(
-                service,
-                winsvc::SERVICE_CONTROL_STOP,
-                status
-            ));
-            try_win!(winsvc::CloseServiceHandle(service));
-            try_win!(winsvc::CloseServiceHandle(manager));
+            let service = try_win!(
+                OpenServiceA(manager, "WinDIvert", SERVICE_ALL_ACCESS),
+                SC_HANDLE::NULL
+            );
+            try_win!(ControlService(service, SERVICE_CONTROL_STOP, status));
+            try_win!(CloseServiceHandle(service));
+            try_win!(CloseServiceHandle(manager));
         }
         Ok(())
     }

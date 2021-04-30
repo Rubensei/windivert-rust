@@ -7,19 +7,18 @@ pub mod header;
 pub mod ioctl;
 
 mod bitfield;
+use std::ffi::c_void;
+
 pub(crate) use bitfield::BitfieldUnit;
 mod error;
 pub use error::*;
 mod newtypes;
 pub use newtypes::*;
 
-use winapi::{
-    shared::{
-        minwindef::BOOL,
-        ntdef::{HANDLE, PVOID},
-    },
-    um::minwinbase::LPOVERLAPPED,
-};
+/// Re exports of windows types
+#[allow(missing_docs)]
+pub mod windows;
+use self::windows::Windows::Win32::SystemServices::{BOOL, HANDLE, OVERLAPPED};
 
 /// Default value for queue length parameter.
 pub const WINDIVERT_PARAM_QUEUE_LENGTH_DEFAULT: u64 = 4096;
@@ -67,7 +66,7 @@ extern "C" {
         flags: u64,
         pAddr: *mut address::WINDIVERT_ADDRESS,
         pAddrLen: *mut u32,
-        lpOverlapped: LPOVERLAPPED,
+        lpOverlapped: *mut OVERLAPPED,
     ) -> BOOL;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_send)
@@ -88,7 +87,7 @@ extern "C" {
         flags: u64,
         pAddr: *const address::WINDIVERT_ADDRESS,
         addrLen: u32,
-        lpOverlapped: LPOVERLAPPED,
+        lpOverlapped: *mut OVERLAPPED,
     ) -> BOOL;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_shutdown)
@@ -116,9 +115,9 @@ extern "C" {
         ppIcmpv6Hdr: *mut header::PWINDIVERT_ICMPV6HDR,
         ppTcpHdr: *mut header::PWINDIVERT_TCPHDR,
         ppUdpHdr: *mut header::PWINDIVERT_UDPHDR,
-        ppData: *mut PVOID,
+        ppData: *mut c_void,
         pDataLen: *mut u32,
-        ppNext: *mut PVOID,
+        ppNext: *mut c_void,
         pNextLen: *mut u32,
     ) -> BOOL;
 
