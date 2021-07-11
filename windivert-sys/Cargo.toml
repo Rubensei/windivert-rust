@@ -17,10 +17,10 @@ build = "build.rs"
 name = "windivert_sys"
 
 [dependencies]
-windows = "0.9.1"
+windows = "0.17.2"
 
 [build-dependencies]
-windows = "0.9.1"
+windows = "0.17.2"
 cc = "1.0.66"
 
 [package.metadata.docs.rs]

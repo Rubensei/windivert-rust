@@ -19,58 +19,6 @@ fn print_env(compiler: &Tool) {
     eprintln!("");
 }
 
-fn generate_windows_bindings() {
-    windows::build!(
-        Windows::Win32::Debug::{
-            WIN32_ERROR,
-        },
-        Windows::Devices::Custom::{
-            IOControlAccessMode,
-            IOControlBufferingMethod,
-            IOControlCode,
-        },
-        Windows::Win32::FileSystem::{
-            FILE_ACCESS_FLAGS,
-            CancelIo,
-        },
-        Windows::Win32::Security::{
-            SC_HANDLE,
-            SERVICE_CHANGE_CONFIG,
-            SERVICE_CONTROL_STOP,
-            SERVICE_INTERROGATE,
-            SERVICE_STATUS,
-            SERVICE_QUERY_CONFIG,
-            SERVICE_QUERY_STATUS,
-            SERVICE_START,
-            SERVICE_STOP,
-            SERVICE_USER_DEFINED_CONTROL,
-            CloseServiceHandle,
-            ControlService,
-            OpenServiceA,
-            OpenSCManagerA,
-        },
-        Windows::Win32::SystemServices::{
-            BOOL,
-            FALSE,
-            FILE_DEVICE_NETWORK,
-            HANDLE,
-            METHOD_OUT_DIRECT,
-            OVERLAPPED,
-            TRUE,
-            WAIT_RETURN_CAUSE,
-            CreateEventA,
-            DeviceIoControl,
-            GetOverlappedResultEx,
-            TlsAlloc,
-            TlsGetValue,
-            TlsSetValue,
-        },
-        Windows::Win32::WindowsClustering::{
-            CLCTL_CODES,
-        },
-    );
-}
-
 fn main() {
     generate_windows_bindings();
 
@@ -260,4 +208,60 @@ fn set_gnu_c_options(cmd: &mut Command) {
 
 fn set_gnu_c_libs(cmd: &mut Command) {
     cmd.args(&["-lkernel32", "-ladvapi32"]);
+}
+
+fn generate_windows_bindings() {
+    windows::build!(
+        Windows::Win32::System::Diagnostics::Debug::{
+            WIN32_ERROR,
+        },
+        Windows::Devices::Custom::{
+            IOControlAccessMode,
+            IOControlBufferingMethod,
+            IOControlCode,
+        },
+        Windows::Win32::Storage::FileSystem::{
+            FILE_ACCESS_FLAGS,
+            CancelIo,
+        },
+        Windows::Win32::Security::{
+            SC_HANDLE,
+        },
+        Windows::Win32::System::Services::{
+            SERVICE_CHANGE_CONFIG,
+            SERVICE_CONTROL_STOP,
+            SERVICE_INTERROGATE,
+            SERVICE_STATUS,
+            SERVICE_QUERY_CONFIG,
+            SERVICE_QUERY_STATUS,
+            SERVICE_START,
+            SERVICE_STOP,
+            SERVICE_USER_DEFINED_CONTROL,
+            CloseServiceHandle,
+            ControlService,
+            OpenServiceA,
+            OpenSCManagerA,
+        },
+        Windows::Win32::Foundation::{
+            BOOL,
+            HANDLE,
+        },
+        Windows::Win32::System::SystemServices::{
+            FILE_DEVICE_NETWORK,
+            METHOD_OUT_DIRECT,
+            OVERLAPPED,
+            DeviceIoControl,
+            GetOverlappedResultEx,
+        },
+        Windows::Win32::System::Threading::{
+            WAIT_RETURN_CAUSE,
+            CreateEventA,
+            TlsAlloc,
+            TlsGetValue,
+            TlsSetValue,
+        },
+        Windows::Win32::Networking::Clustering::{
+            CLCTL_CODES,
+        },
+    );
 }

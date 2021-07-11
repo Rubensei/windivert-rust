@@ -18,8 +18,10 @@ pub use newtypes::*;
 /// Re exports of windows types
 #[allow(missing_docs)]
 pub mod windows;
-use self::windows::Windows::Win32::SystemServices::{BOOL, HANDLE, OVERLAPPED};
-
+use self::windows::Windows::Win32::{
+    Foundation::{BOOL, HANDLE},
+    System::SystemServices::OVERLAPPED,
+};
 /// Default value for queue length parameter.
 pub const WINDIVERT_PARAM_QUEUE_LENGTH_DEFAULT: u64 = 4096;
 /// Minimum valid value for queue length parameter.

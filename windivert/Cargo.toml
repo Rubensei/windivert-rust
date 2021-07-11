@@ -13,7 +13,7 @@ edition = "2018"
 
 [dependencies]
 etherparse = "0.9.0"
-windows = "0.9.1"
+windows = "0.17.2"
 windivert-sys = { version = "0.6.0", path = "../windivert-sys" }
 
 [package.metadata.docs.rs]

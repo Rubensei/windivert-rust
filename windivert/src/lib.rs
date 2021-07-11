@@ -11,7 +11,12 @@ mod packet;
 use error::*;
 use wd::windows::Windows::{
     Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
-    Win32::{Debug::*, FileSystem::*, Security::*, SystemServices::*},
+    Win32::{
+        Foundation::*,
+        Security::*,
+        Storage::FileSystem::*,
+        System::{Diagnostics::Debug::*, Services::*, SystemServices::*, Threading::*},
+    },
 };
 use wd::{address::WINDIVERT_ADDRESS, ioctl::WINDIVERT_IOCTL_RECV};
 use windivert_sys as wd;
@@ -34,7 +39,7 @@ use windows::{Error as WinError, Result as WinResult, HRESULT};
 macro_rules! try_win {
     ($expr:expr) => {{
         let x = $expr;
-        if x == FALSE {
+        if x == BOOL::from(false) {
             return Err(WinError::fast_error(HRESULT::from_win32(
                 std::io::Error::last_os_error().raw_os_error().unwrap() as u32,
             )));
@@ -57,7 +62,7 @@ macro_rules! try_win {
 
 macro_rules! try_divert {
     ($expr:expr) => {
-        if $expr == FALSE {
+        if $expr == BOOL::from(false) {
             return Err(std::io::Error::last_os_error().into());
         }
     };
@@ -65,7 +70,7 @@ macro_rules! try_divert {
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
 
-const SERVICE_ALL_ACCESS: u32 = FILE_ACCESS_FLAGS::STANDARD_RIGHTS_REQUIRED.0
+const SERVICE_ALL_ACCESS: u32 = STANDARD_RIGHTS_REQUIRED.0
     | SERVICE_CHANGE_CONFIG
     | SERVICE_CONTROL_STOP
     | SERVICE_INTERROGATE
@@ -93,7 +98,7 @@ pub struct WinDivert {
 impl WinDivert {
     /// Open a handle using the specified parameters.
     pub fn new(
-        filter: String,
+        filter: &str,
         layer: WinDivertLayer,
         priority: i16,
         flags: WinDivertFlags,
@@ -135,9 +140,9 @@ impl WinDivert {
         mut buffer: Vec<u8>,
         addr_buffer: Vec<WINDIVERT_ADDRESS>,
     ) -> Vec<WinDivertPacket> {
-        let mut packets = Vec::new();
+        let mut packets = Vec::with_capacity(addr_buffer.len());
         for addr in addr_buffer.into_iter() {
-            packets.push(WinDivertPacket::from(WinDivertRawPacket {
+            packets.push(WinDivertPacket {
                 address: addr,
                 data: match self.layer {
                     WinDivertLayer::Network | WinDivertLayer::Forward => {
@@ -167,7 +172,7 @@ impl WinDivert {
                     }
                     _ => Vec::new(),
                 },
-            }));
+            });
         }
         packets
     }
@@ -185,13 +190,14 @@ impl WinDivert {
                 &mut packet_length,
                 &mut addr,
             )
-        } == TRUE
+        }
+        .as_bool()
         {
             buffer.truncate(packet_length as usize);
-            Ok(WinDivertPacket::from(WinDivertRawPacket {
+            Ok(WinDivertPacket {
                 address: addr,
                 data: buffer,
-            }))
+            })
         } else {
             let err = WinDivertRecvError::try_from(std::io::Error::last_os_error());
             match err {
@@ -225,7 +231,8 @@ impl WinDivert {
                 &mut addr_len,
                 std::ptr::null_mut() as *mut OVERLAPPED,
             )
-        } == TRUE
+        }
+        .as_bool()
         {
             addr_buffer.truncate((addr_len / ADDR_SIZE as u32) as usize);
             buffer.truncate(packet_length as usize);
@@ -277,9 +284,8 @@ impl WinDivert {
             )
         };
 
-        if res == FALSE
-            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32
-                == WIN32_ERROR::ERROR_IO_PENDING.0
+        if !res.as_bool()
+            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32 == ERROR_IO_PENDING.0
         {
             loop {
                 let res = unsafe {
@@ -291,17 +297,17 @@ impl WinDivert {
                         true,
                     )
                 };
-                if res == TRUE {
+                if res.as_bool() {
                     break;
                 } else {
                     let return_cause =
                         (std::io::Error::last_os_error().raw_os_error().unwrap() as u32).into();
                     match return_cause {
-                        WAIT_RETURN_CAUSE::WAIT_TIMEOUT => {
+                        WAIT_TIMEOUT => {
                             unsafe { CancelIo(self.handle) };
                             return Ok(None);
                         }
-                        WAIT_RETURN_CAUSE::WAIT_IO_COMPLETION => break,
+                        WAIT_IO_COMPLETION => break,
                         value => {
                             if let Ok(err) = WinDivertRecvError::try_from(value.0 as i32) {
                                 return Err(WinDivertError::Recv(err));
@@ -314,7 +320,7 @@ impl WinDivert {
             }
         }
         buffer.truncate(packet_length as usize);
-        Ok(Some(WinDivertPacket::from(WinDivertRawPacket {
+        Ok(Some(WinDivertPacket::from(WinDivertPacket {
             address: addr,
             data: buffer,
         })))
@@ -360,9 +366,8 @@ impl WinDivert {
             )
         };
 
-        if res == FALSE
-            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32
-                == WIN32_ERROR::ERROR_IO_PENDING.0
+        if !res.as_bool()
+            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32 == ERROR_IO_PENDING.0
         {
             loop {
                 let res = unsafe {
@@ -371,21 +376,21 @@ impl WinDivert {
                         &mut overlapped,
                         &mut packet_length,
                         timeout_ms,
-                        TRUE,
+                        true,
                     )
                 };
 
-                if res == TRUE {
+                if res.as_bool() {
                     break;
                 } else {
                     let return_cause =
                         (std::io::Error::last_os_error().raw_os_error().unwrap() as u32).into();
                     match return_cause {
-                        WAIT_RETURN_CAUSE::WAIT_TIMEOUT => {
+                        WAIT_TIMEOUT => {
                             unsafe { CancelIo(self.handle) };
                             return Ok(None);
                         }
-                        WAIT_RETURN_CAUSE::WAIT_IO_COMPLETION => break,
+                        WAIT_IO_COMPLETION => break,
                         value => {
                             if let Ok(err) = WinDivertRecvError::try_from(value.0 as i32) {
                                 return Err(WinDivertError::Recv(err));
@@ -403,9 +408,9 @@ impl WinDivert {
     }
 
     /// Single packet send function.
-    pub fn send(&self, packet: WinDivertPacket) -> Result<u32, WinDivertError> {
+    pub fn send<T: Into<WinDivertPacket>>(&self, packet: T) -> Result<u32, WinDivertError> {
         let mut injected_length = 0;
-        let mut packet: WinDivertRawPacket = packet.into();
+        let mut packet = packet.into();
         unsafe {
             try_divert!(wd::WinDivertSend(
                 self.handle,
@@ -419,13 +424,16 @@ impl WinDivert {
     }
 
     /// Batched send function.
-    pub fn send_ex(&self, mut data: Vec<WinDivertPacket>) -> Result<u32, WinDivertError> {
+    pub fn send_ex<T: Into<WinDivertPacket>>(
+        &self,
+        mut data: Vec<T>,
+    ) -> Result<u32, WinDivertError> {
         let packet_count = data.len();
         let mut injected_length = 0;
-        let mut packet_buffer = Vec::new();
-        let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::new();
+        let mut packet_buffer = Vec::with_capacity(data.len());
+        let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::with_capacity(data.len());
         data.drain(..).for_each(|packet| {
-            let mut packet: WinDivertRawPacket = packet.into();
+            let mut packet: WinDivertPacket = packet.into();
             packet_buffer.append(&mut packet.data);
             address_buffer.push(packet.address);
         });
