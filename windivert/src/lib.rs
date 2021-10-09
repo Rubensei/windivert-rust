@@ -4,7 +4,8 @@
 Wrapper arround [`windivert_sys`] ffi crate.
 */
 
-mod address;
+/// WinDivert address data structures
+pub mod address;
 mod error;
 mod packet;
 
