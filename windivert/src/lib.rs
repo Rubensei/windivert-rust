@@ -35,13 +35,13 @@ use std::{
 };
 
 use etherparse::{InternetSlice, SlicedPacket};
-use windows::{Error as WinError, Result as WinResult, HRESULT};
+use windows::{Error as WinError, Handle, Result as WinResult, HRESULT};
 
 macro_rules! try_win {
     ($expr:expr) => {{
         let x = $expr;
         if x == BOOL::from(false) {
-            return Err(WinError::fast_error(HRESULT::from_win32(
+            return Err(WinError::fast_error(HRESULT(
                 std::io::Error::last_os_error().raw_os_error().unwrap() as u32,
             )));
         } else {
@@ -52,7 +52,7 @@ macro_rules! try_win {
     ($expr:expr, $value:expr) => {{
         let x = $expr;
         if x == $value {
-            return Err(WinError::fast_error(HRESULT::from_win32(
+            return Err(WinError::fast_error(HRESULT(
                 std::io::Error::last_os_error().raw_os_error().unwrap() as u32,
             )));
         } else {
@@ -123,11 +123,12 @@ impl WinDivert {
     }
 
     fn get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
-        let mut event = HANDLE::NULL;
+        let mut event = HANDLE::default();
         event.0 = unsafe { TlsGetValue(tls_idx) } as isize;
-        if event.is_null() {
-            let event = unsafe { CreateEventA(std::ptr::null_mut(), false, false, PSTR::NULL) };
-            if event.is_null() {
+        if event.is_invalid() {
+            let event =
+                unsafe { CreateEventA(std::ptr::null_mut(), false, false, PSTR::default()) };
+            if event.is_invalid() {
                 return Err(std::io::Error::last_os_error().into());
             } else {
                 unsafe { TlsSetValue(tls_idx, event.0 as *mut c_void) }
@@ -495,12 +496,12 @@ impl WinDivert {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
         unsafe {
             let manager = try_win!(
-                OpenSCManagerA(PSTR::NULL, PSTR::NULL, SERVICE_ALL_ACCESS),
-                SC_HANDLE::NULL
+                OpenSCManagerA(PSTR::default(), PSTR::default(), SERVICE_ALL_ACCESS),
+                SC_HANDLE::default()
             );
             let service = try_win!(
                 OpenServiceA(manager, "WinDIvert", SERVICE_ALL_ACCESS),
-                SC_HANDLE::NULL
+                SC_HANDLE::default()
             );
             try_win!(ControlService(service, SERVICE_CONTROL_STOP, status));
             try_win!(CloseServiceHandle(service));

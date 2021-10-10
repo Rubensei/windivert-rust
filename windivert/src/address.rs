@@ -5,7 +5,7 @@ use windivert_sys::address::*;
 
 macro_rules! addr_impl {
     () => {
-        /// Timestamp of the event. Uses same clock as [QueryPerformanceCounter()]
+        /// Timestamp of the event. Uses same clock as `QueryPerformanceCounter()`
         pub fn event_timestamp(&self) -> i64 {
             self.data.timestamp
         }
@@ -114,7 +114,7 @@ impl WinDivertNetworkData {
         self.data_mut().interface_id = value
     }
 
-    /// The sub-interface index for [interface_id()]
+    /// The sub-interface index for `interface_id()`
     pub fn subinterface_index(&self) -> u32 {
         self.data().subinterface_id
     }

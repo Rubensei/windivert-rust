@@ -20,9 +20,9 @@ fn print_env(compiler: &Tool) {
 }
 
 fn main() {
-    generate_windows_bindings();
+    if std::env::var("DOCS_RS").is_err() {
+        generate_windows_bindings();
 
-    if let Err(_) = std::env::var("DOCS_RS") {
         let out_dir = env::var("OUT_DIR").unwrap();
         println!("cargo:rerun-if-changed=wrapper.h");
         println!("cargo:rerun-if-env-changed=WINDIVERT_PATH");
