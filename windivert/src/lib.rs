@@ -10,17 +10,28 @@ mod error;
 mod packet;
 
 use error::*;
-use wd::windows::Windows::{
-    Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
-    Win32::{
-        Foundation::*,
-        Security::*,
-        Storage::FileSystem::*,
-        System::{Diagnostics::Debug::*, Services::*, SystemServices::*, Threading::*},
-    },
-};
 use wd::{address::WINDIVERT_ADDRESS, ioctl::WINDIVERT_IOCTL_RECV};
 use windivert_sys as wd;
+use windows::{
+    core::{Error as WinError, Result as WinResult, HRESULT},
+    Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
+    Win32::{
+        Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, PSTR, WAIT_TIMEOUT},
+        Security::SC_HANDLE,
+        Storage::FileSystem::STANDARD_RIGHTS_REQUIRED,
+        System::{
+            Ioctl::FILE_DEVICE_NETWORK,
+            Services::{
+                CloseServiceHandle, ControlService, OpenSCManagerA, OpenServiceA,
+                SERVICE_CHANGE_CONFIG, SERVICE_CONTROL_STOP, SERVICE_INTERROGATE,
+                SERVICE_QUERY_CONFIG, SERVICE_QUERY_STATUS, SERVICE_START, SERVICE_STATUS,
+                SERVICE_STOP, SERVICE_USER_DEFINED_CONTROL,
+            },
+            Threading::{CreateEventA, TlsAlloc, TlsGetValue, TlsSetValue, WAIT_IO_COMPLETION},
+            IO::{CancelIo, DeviceIoControl, GetOverlappedResultEx, OVERLAPPED},
+        },
+    },
+};
 
 pub use error::WinDivertError;
 pub use packet::*;
@@ -35,14 +46,13 @@ use std::{
 };
 
 use etherparse::{InternetSlice, SlicedPacket};
-use windows::{Error as WinError, Handle, Result as WinResult, HRESULT};
 
 macro_rules! try_win {
     ($expr:expr) => {{
         let x = $expr;
         if x == BOOL::from(false) {
             return Err(WinError::fast_error(HRESULT(
-                std::io::Error::last_os_error().raw_os_error().unwrap() as u32,
+                std::io::Error::last_os_error().raw_os_error().unwrap(),
             )));
         } else {
             x
@@ -53,7 +63,7 @@ macro_rules! try_win {
         let x = $expr;
         if x == $value {
             return Err(WinError::fast_error(HRESULT(
-                std::io::Error::last_os_error().raw_os_error().unwrap() as u32,
+                std::io::Error::last_os_error().raw_os_error().unwrap(),
             )));
         } else {
             x
@@ -71,7 +81,7 @@ macro_rules! try_divert {
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
 
-const SERVICE_ALL_ACCESS: u32 = STANDARD_RIGHTS_REQUIRED.0
+const SERVICE_ALL_ACCESS: u32 = STANDARD_RIGHTS_REQUIRED
     | SERVICE_CHANGE_CONFIG
     | SERVICE_CONTROL_STOP
     | SERVICE_INTERROGATE
@@ -151,7 +161,7 @@ impl WinDivert {
                         let headers = SlicedPacket::from_ip(&buffer)
                             .expect("WinDivert can't capture anything below ip");
                         let offset = match headers.ip.unwrap() {
-                            InternetSlice::Ipv4(ipheader) => ipheader.total_len() as usize,
+                            InternetSlice::Ipv4(ipheader, _) => ipheader.total_len() as usize,
                             InternetSlice::Ipv6(ip6header, _) => {
                                 ip6header.payload_length() as usize + 40
                             }
@@ -287,7 +297,7 @@ impl WinDivert {
         };
 
         if !res.as_bool()
-            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32 == ERROR_IO_PENDING.0
+            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32 == ERROR_IO_PENDING
         {
             loop {
                 let res = unsafe {
@@ -303,7 +313,7 @@ impl WinDivert {
                     break;
                 } else {
                     let return_cause =
-                        (std::io::Error::last_os_error().raw_os_error().unwrap() as u32).into();
+                        std::io::Error::last_os_error().raw_os_error().unwrap() as u32;
                     match return_cause {
                         WAIT_TIMEOUT => {
                             unsafe { CancelIo(self.handle) };
@@ -311,7 +321,7 @@ impl WinDivert {
                         }
                         WAIT_IO_COMPLETION => break,
                         value => {
-                            if let Ok(err) = WinDivertRecvError::try_from(value.0 as i32) {
+                            if let Ok(err) = WinDivertRecvError::try_from(value as i32) {
                                 return Err(WinDivertError::Recv(err));
                             } else {
                                 panic!("This arm should never be reached")
@@ -369,7 +379,7 @@ impl WinDivert {
         };
 
         if !res.as_bool()
-            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32 == ERROR_IO_PENDING.0
+            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32 == ERROR_IO_PENDING
         {
             loop {
                 let res = unsafe {
@@ -386,7 +396,7 @@ impl WinDivert {
                     break;
                 } else {
                     let return_cause =
-                        (std::io::Error::last_os_error().raw_os_error().unwrap() as u32).into();
+                        std::io::Error::last_os_error().raw_os_error().unwrap() as u32;
                     match return_cause {
                         WAIT_TIMEOUT => {
                             unsafe { CancelIo(self.handle) };
@@ -394,7 +404,7 @@ impl WinDivert {
                         }
                         WAIT_IO_COMPLETION => break,
                         value => {
-                            if let Ok(err) = WinDivertRecvError::try_from(value.0 as i32) {
+                            if let Ok(err) = WinDivertRecvError::try_from(value as i32) {
                                 return Err(WinDivertError::Recv(err));
                             } else {
                                 panic!("This arm should never be reached")
@@ -500,7 +510,11 @@ impl WinDivert {
                 SC_HANDLE::default()
             );
             let service = try_win!(
-                OpenServiceA(manager, "WinDIvert", SERVICE_ALL_ACCESS),
+                OpenServiceA(
+                    manager,
+                    PSTR(String::from("WinDivert").as_mut_ptr()),
+                    SERVICE_ALL_ACCESS
+                ),
                 SC_HANDLE::default()
             );
             try_win!(ControlService(service, SERVICE_CONTROL_STOP, status));

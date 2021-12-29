@@ -12,9 +12,23 @@ license = "GPL-3.0-or-later"
 edition = "2018"
 
 [dependencies]
-etherparse = "0.9.0"
-windows = "0.21.1"
+etherparse = "0.10"
 windivert-sys = { version = "0.6.1", path = "../windivert-sys" }
+
+[dependencies.windows]
+version = "0.29.0"
+features = [
+	"Devices_Custom",
+	"Win32_Devices",
+	"Win32_Foundation",
+	"Win32_Security",
+	"Win32_Storage_FileSystem",
+	"Win32_System_Diagnostics",
+	"Win32_System_IO",
+	"Win32_System_Ioctl",
+	"Win32_System_Services",
+	"Win32_System_Threading"
+]
 
 [package.metadata.docs.rs]
 default-target = "x86_64-pc-windows-msvc"

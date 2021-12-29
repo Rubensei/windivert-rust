@@ -21,8 +21,6 @@ fn print_env(compiler: &Tool) {
 
 fn main() {
     if std::env::var("DOCS_RS").is_err() {
-        generate_windows_bindings();
-
         let out_dir = env::var("OUT_DIR").unwrap();
         println!("cargo:rerun-if-changed=wrapper.h");
         println!("cargo:rerun-if-env-changed=WINDIVERT_PATH");
@@ -208,60 +206,4 @@ fn set_gnu_c_options(cmd: &mut Command) {
 
 fn set_gnu_c_libs(cmd: &mut Command) {
     cmd.args(&["-lkernel32", "-ladvapi32"]);
-}
-
-fn generate_windows_bindings() {
-    windows::build!(
-        Windows::Win32::System::Diagnostics::Debug::{
-            WIN32_ERROR,
-        },
-        Windows::Devices::Custom::{
-            IOControlAccessMode,
-            IOControlBufferingMethod,
-            IOControlCode,
-        },
-        Windows::Win32::Storage::FileSystem::{
-            FILE_ACCESS_FLAGS,
-            CancelIo,
-        },
-        Windows::Win32::Security::{
-            SC_HANDLE,
-        },
-        Windows::Win32::System::Services::{
-            SERVICE_CHANGE_CONFIG,
-            SERVICE_CONTROL_STOP,
-            SERVICE_INTERROGATE,
-            SERVICE_STATUS,
-            SERVICE_QUERY_CONFIG,
-            SERVICE_QUERY_STATUS,
-            SERVICE_START,
-            SERVICE_STOP,
-            SERVICE_USER_DEFINED_CONTROL,
-            CloseServiceHandle,
-            ControlService,
-            OpenServiceA,
-            OpenSCManagerA,
-        },
-        Windows::Win32::Foundation::{
-            BOOL,
-            HANDLE,
-        },
-        Windows::Win32::System::SystemServices::{
-            FILE_DEVICE_NETWORK,
-            METHOD_OUT_DIRECT,
-            OVERLAPPED,
-            DeviceIoControl,
-            GetOverlappedResultEx,
-        },
-        Windows::Win32::System::Threading::{
-            WAIT_RETURN_CAUSE,
-            CreateEventA,
-            TlsAlloc,
-            TlsGetValue,
-            TlsSetValue,
-        },
-        Windows::Win32::Networking::Clustering::{
-            CLCTL_CODES,
-        },
-    );
 }
