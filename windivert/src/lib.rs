@@ -18,14 +18,11 @@ use windows::{
     Win32::{
         Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, PSTR, WAIT_TIMEOUT},
         Security::SC_HANDLE,
-        Storage::FileSystem::STANDARD_RIGHTS_REQUIRED,
         System::{
             Ioctl::FILE_DEVICE_NETWORK,
             Services::{
                 CloseServiceHandle, ControlService, OpenSCManagerA, OpenServiceA,
-                SERVICE_CHANGE_CONFIG, SERVICE_CONTROL_STOP, SERVICE_INTERROGATE,
-                SERVICE_QUERY_CONFIG, SERVICE_QUERY_STATUS, SERVICE_START, SERVICE_STATUS,
-                SERVICE_STOP, SERVICE_USER_DEFINED_CONTROL,
+                SC_MANAGER_ALL_ACCESS, SERVICE_CONTROL_STOP, SERVICE_STATUS,
             },
             Threading::{CreateEventA, TlsAlloc, TlsGetValue, TlsSetValue, WAIT_IO_COMPLETION},
             IO::{CancelIo, DeviceIoControl, GetOverlappedResultEx, OVERLAPPED},
@@ -80,16 +77,6 @@ macro_rules! try_divert {
 }
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
-
-const SERVICE_ALL_ACCESS: u32 = STANDARD_RIGHTS_REQUIRED
-    | SERVICE_CHANGE_CONFIG
-    | SERVICE_CONTROL_STOP
-    | SERVICE_INTERROGATE
-    | SERVICE_QUERY_CONFIG
-    | SERVICE_QUERY_STATUS
-    | SERVICE_START
-    | SERVICE_STOP
-    | SERVICE_USER_DEFINED_CONTROL;
 
 /// Action parameter for  [`WinDivert::close()`](`fn@WinDivert::close`)
 pub enum CloseAction {
@@ -506,14 +493,14 @@ impl WinDivert {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
         unsafe {
             let manager = try_win!(
-                OpenSCManagerA(PSTR::default(), PSTR::default(), SERVICE_ALL_ACCESS),
+                OpenSCManagerA(PSTR::default(), PSTR::default(), SC_MANAGER_ALL_ACCESS),
                 SC_HANDLE::default()
             );
             let service = try_win!(
                 OpenServiceA(
                     manager,
                     PSTR(String::from("WinDivert").as_mut_ptr()),
-                    SERVICE_ALL_ACCESS
+                    SC_MANAGER_ALL_ACCESS
                 ),
                 SC_HANDLE::default()
             );
