@@ -13,10 +13,10 @@ use error::*;
 use wd::{address::WINDIVERT_ADDRESS, ioctl::WINDIVERT_IOCTL_RECV};
 use windivert_sys as wd;
 use windows::{
-    core::{Error as WinError, Result as WinResult, HRESULT},
+    core::{Error as WinError, Result as WinResult, PCSTR},
     Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
     Win32::{
-        Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, PSTR, WAIT_TIMEOUT},
+        Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, WAIT_TIMEOUT, GetLastError, WIN32_ERROR},
         Security::SC_HANDLE,
         System::{
             Ioctl::FILE_DEVICE_NETWORK,
@@ -48,9 +48,7 @@ macro_rules! try_win {
     ($expr:expr) => {{
         let x = $expr;
         if x == BOOL::from(false) {
-            return Err(WinError::fast_error(HRESULT(
-                std::io::Error::last_os_error().raw_os_error().unwrap(),
-            )));
+            return Err(WinError::from(GetLastError()));
         } else {
             x
         }
@@ -59,9 +57,7 @@ macro_rules! try_win {
     ($expr:expr, $value:expr) => {{
         let x = $expr;
         if x == $value {
-            return Err(WinError::fast_error(HRESULT(
-                std::io::Error::last_os_error().raw_os_error().unwrap(),
-            )));
+            return Err(WinError::from(GetLastError()));
         } else {
             x
         }
@@ -124,7 +120,7 @@ impl WinDivert {
         event.0 = unsafe { TlsGetValue(tls_idx) } as isize;
         if event.is_invalid() {
             let event =
-                unsafe { CreateEventA(std::ptr::null_mut(), false, false, PSTR::default()) };
+                unsafe { CreateEventA(std::ptr::null_mut(), false, false, PCSTR::default()) };
             if event.is_invalid() {
                 return Err(std::io::Error::last_os_error().into());
             } else {
@@ -283,9 +279,7 @@ impl WinDivert {
             )
         };
 
-        if !res.as_bool()
-            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32 == ERROR_IO_PENDING
-        {
+        if !res.as_bool() && unsafe {GetLastError()} == ERROR_IO_PENDING {
             loop {
                 let res = unsafe {
                     GetOverlappedResultEx(
@@ -299,17 +293,15 @@ impl WinDivert {
                 if res.as_bool() {
                     break;
                 } else {
-                    let return_cause =
-                        std::io::Error::last_os_error().raw_os_error().unwrap() as u32;
-                    match return_cause {
+                    match unsafe {GetLastError()} {
                         WAIT_TIMEOUT => {
                             unsafe { CancelIo(self.handle) };
                             return Ok(None);
                         }
-                        WAIT_IO_COMPLETION => break,
+                        WIN32_ERROR(WAIT_IO_COMPLETION) => break,
                         value => {
-                            if let Ok(err) = WinDivertRecvError::try_from(value as i32) {
-                                return Err(WinDivertError::Recv(err));
+                            if let Ok(error) = WinDivertRecvError::try_from(value.0 as i32) {
+                                return Err(WinDivertError::Recv(error));
                             } else {
                                 panic!("This arm should never be reached")
                             }
@@ -365,9 +357,7 @@ impl WinDivert {
             )
         };
 
-        if !res.as_bool()
-            && std::io::Error::last_os_error().raw_os_error().unwrap() as u32 == ERROR_IO_PENDING
-        {
+        if !res.as_bool() && unsafe {GetLastError()} == ERROR_IO_PENDING {
             loop {
                 let res = unsafe {
                     GetOverlappedResultEx(
@@ -382,17 +372,15 @@ impl WinDivert {
                 if res.as_bool() {
                     break;
                 } else {
-                    let return_cause =
-                        std::io::Error::last_os_error().raw_os_error().unwrap() as u32;
-                    match return_cause {
+                    match unsafe {GetLastError()} {
                         WAIT_TIMEOUT => {
                             unsafe { CancelIo(self.handle) };
                             return Ok(None);
                         }
-                        WAIT_IO_COMPLETION => break,
+                        WIN32_ERROR(WAIT_IO_COMPLETION) => break,
                         value => {
-                            if let Ok(err) = WinDivertRecvError::try_from(value as i32) {
-                                return Err(WinDivertError::Recv(err));
+                            if let Ok(error) = WinDivertRecvError::try_from(value.0 as i32) {
+                                return Err(WinDivertError::Recv(error));
                             } else {
                                 panic!("This arm should never be reached")
                             }
@@ -493,13 +481,13 @@ impl WinDivert {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
         unsafe {
             let manager = try_win!(
-                OpenSCManagerA(PSTR::default(), PSTR::default(), SC_MANAGER_ALL_ACCESS),
+                OpenSCManagerA(PCSTR::default(), PCSTR::default(), SC_MANAGER_ALL_ACCESS),
                 SC_HANDLE::default()
             );
             let service = try_win!(
                 OpenServiceA(
                     manager,
-                    PSTR(String::from("WinDivert").as_mut_ptr()),
+                    "WinDivert",
                     SC_MANAGER_ALL_ACCESS
                 ),
                 SC_HANDLE::default()
