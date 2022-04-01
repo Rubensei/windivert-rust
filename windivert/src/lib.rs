@@ -1,7 +1,7 @@
 // TODO: #[deny(missing_docs)]
 #![warn(missing_docs)]
 /*!
-Wrapper arround [`windivert_sys`] ffi crate.
+Wrapper around [`windivert_sys`] ffi crate.
 */
 
 /// WinDivert address data structures
@@ -108,7 +108,7 @@ impl WinDivert {
             }
         } else {
             Ok(Self {
-                handle: handle,
+                handle,
                 layer,
                 tls_idx: windivert_tls_idx,
             })
@@ -144,7 +144,7 @@ impl WinDivert {
                         let headers = SlicedPacket::from_ip(&buffer)
                             .expect("WinDivert can't capture anything below ip");
                         let offset = match headers.ip.unwrap() {
-                            InternetSlice::Ipv4(ipheader, _) => ipheader.total_len() as usize,
+                            InternetSlice::Ipv4(ip_header, _) => ip_header.total_len() as usize,
                             InternetSlice::Ipv6(ip6header, _) => {
                                 ip6header.payload_length() as usize + 40
                             }
@@ -311,13 +311,13 @@ impl WinDivert {
             }
         }
         buffer.truncate(packet_length as usize);
-        Ok(Some(WinDivertPacket::from(WinDivertPacket {
+        Ok(Some(WinDivertPacket {
             address: addr,
             data: buffer,
-        })))
+        }))
     }
 
-    /// Bacthed recv function with timeout.
+    /// Batched recv function with timeout.
     pub fn recv_ex_wait(
         &self,
         buffer_size: usize,
