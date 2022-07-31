@@ -12,13 +12,12 @@ license = "LGPL-3.0-or-later"
 edition = "2018"
 
 [dependencies]
-etherparse = "0.10"
-windivert-sys = { version = "0.8.0", path = "../windivert-sys" }
+etherparse = "0.12"
+windivert-sys = { version = "0.8.1", path = "../windivert-sys" }
 
 [dependencies.windows]
-version = "0.34.0"
+version = "0.39.0"
 features = [
-	"alloc",
 	"Devices_Custom",
 	"Win32_Devices",
 	"Win32_Foundation",

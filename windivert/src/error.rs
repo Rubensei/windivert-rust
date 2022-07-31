@@ -40,6 +40,12 @@ impl From<WinDivertRecvError> for WinDivertError {
     }
 }
 
+impl From<windows::core::Error> for WinDivertError {
+    fn from(error: windows::core::Error) -> Self {
+        Self::OSError(std::io::Error::from_raw_os_error(error.code().0))
+    }
+}
+
 /**
 Possible errors for [`WinDivertOpen()`](fn@super::WinDivertOpen)
 */

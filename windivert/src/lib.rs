@@ -16,15 +16,14 @@ use windows::{
     core::{Error as WinError, Result as WinResult, PCSTR},
     Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
     Win32::{
-        Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, WAIT_TIMEOUT, GetLastError, WIN32_ERROR},
-        Security::SC_HANDLE,
+        Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, WAIT_TIMEOUT, WAIT_IO_COMPLETION, GetLastError},
         System::{
             Ioctl::FILE_DEVICE_NETWORK,
             Services::{
                 CloseServiceHandle, ControlService, OpenSCManagerA, OpenServiceA,
                 SC_MANAGER_ALL_ACCESS, SERVICE_CONTROL_STOP, SERVICE_STATUS,
             },
-            Threading::{CreateEventA, TlsAlloc, TlsGetValue, TlsSetValue, WAIT_IO_COMPLETION},
+            Threading::{CreateEventA, TlsAlloc, TlsGetValue, TlsSetValue},
             IO::{CancelIo, DeviceIoControl, GetOverlappedResultEx, OVERLAPPED},
         },
     },
@@ -117,16 +116,13 @@ impl WinDivert {
 
     fn get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
         let mut event = HANDLE::default();
-        event.0 = unsafe { TlsGetValue(tls_idx) } as isize;
-        if event.is_invalid() {
-            let event =
-                unsafe { CreateEventA(std::ptr::null_mut(), false, false, PCSTR::default()) };
+        unsafe {
+            event.0 = TlsGetValue(tls_idx) as isize;
             if event.is_invalid() {
-                return Err(std::io::Error::last_os_error().into());
-            } else {
-                unsafe { TlsSetValue(tls_idx, event.0 as *mut c_void) }
-            };
-        };
+                event = CreateEventA(std::ptr::null_mut(), false, false, PCSTR::null())?;
+                TlsSetValue(tls_idx, event.0 as *mut c_void);
+            }
+        }
         Ok(event)
     }
 
@@ -298,7 +294,7 @@ impl WinDivert {
                             unsafe { CancelIo(self.handle) };
                             return Ok(None);
                         }
-                        WIN32_ERROR(WAIT_IO_COMPLETION) => break,
+                        WAIT_IO_COMPLETION => break,
                         value => {
                             if let Ok(error) = WinDivertRecvError::try_from(value.0 as i32) {
                                 return Err(WinDivertError::Recv(error));
@@ -377,7 +373,7 @@ impl WinDivert {
                             unsafe { CancelIo(self.handle) };
                             return Ok(None);
                         }
-                        WIN32_ERROR(WAIT_IO_COMPLETION) => break,
+                        WAIT_IO_COMPLETION => break,
                         value => {
                             if let Ok(error) = WinDivertRecvError::try_from(value.0 as i32) {
                                 return Err(WinDivertError::Recv(error));
@@ -480,18 +476,12 @@ impl WinDivert {
     pub fn uninstall() -> WinResult<()> {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
         unsafe {
-            let manager = try_win!(
-                OpenSCManagerA(PCSTR::default(), PCSTR::default(), SC_MANAGER_ALL_ACCESS),
-                SC_HANDLE::default()
-            );
-            let service = try_win!(
-                OpenServiceA(
-                    manager,
-                    "WinDivert",
-                    SC_MANAGER_ALL_ACCESS
-                ),
-                SC_HANDLE::default()
-            );
+            let manager = OpenSCManagerA(PCSTR::null(), PCSTR::null(), SC_MANAGER_ALL_ACCESS)?;
+            let service = OpenServiceA(
+                manager,
+                PCSTR::from_raw("WinDivert".as_ptr()),
+                SC_MANAGER_ALL_ACCESS
+            )?;
             try_win!(ControlService(service, SERVICE_CONTROL_STOP, status));
             try_win!(CloseServiceHandle(service));
             try_win!(CloseServiceHandle(manager));
