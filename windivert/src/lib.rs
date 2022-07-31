@@ -81,6 +81,46 @@ pub enum CloseAction {
     Nothing,
 }
 
+/// Builder struct for WinDivert
+pub struct WinDivertBuilder {
+    filter: String,
+    layer: WinDivertLayer,
+    priority: i16,
+    flags: WinDivertFlags,
+}
+
+impl WinDivertBuilder {
+    /// Priority setter
+    pub fn priority(self, priority: i16) -> Self {
+        Self { priority, ..self }
+    }
+
+    /// Flags setter
+    pub fn flags(self, flags: WinDivertFlags) -> Self {
+        Self { flags, ..self }
+    }
+
+    /// Builder build method
+    pub fn build(self) -> Result<WinDivert, WinDivertError> {
+        let filter = CString::new(self.filter)?;
+        let windivert_tls_idx = unsafe { TlsAlloc() };
+        let handle =
+            unsafe { wd::WinDivertOpen(filter.as_ptr(), self.layer.into(), self.priority, self.flags.into()) };
+        if handle.is_invalid() {
+            match WinDivertOpenError::try_from(std::io::Error::last_os_error()) {
+                Ok(err) => Err(WinDivertError::Open(err)),
+                Err(err) => Err(WinDivertError::OSError(err)),
+            }
+        } else {
+            Ok(WinDivert {
+                handle,
+                layer: self.layer,
+                tls_idx: windivert_tls_idx,
+            })
+        }
+    }
+}
+
 /// Main wrapper struct around windivert functionalities.
 pub struct WinDivert {
     handle: HANDLE,
@@ -93,24 +133,12 @@ impl WinDivert {
     pub fn new(
         filter: &str,
         layer: WinDivertLayer,
-        priority: i16,
-        flags: WinDivertFlags,
-    ) -> Result<Self, WinDivertError> {
-        let filter = CString::new(filter)?;
-        let windivert_tls_idx = unsafe { TlsAlloc() };
-        let handle =
-            unsafe { wd::WinDivertOpen(filter.as_ptr(), layer.into(), priority, flags.into()) };
-        if handle.is_invalid() {
-            match WinDivertOpenError::try_from(std::io::Error::last_os_error()) {
-                Ok(err) => Err(WinDivertError::Open(err)),
-                Err(err) => Err(WinDivertError::OSError(err)),
-            }
-        } else {
-            Ok(Self {
-                handle,
-                layer,
-                tls_idx: windivert_tls_idx,
-            })
+    ) -> WinDivertBuilder {
+        WinDivertBuilder {
+            filter: filter.to_string(),
+            layer,
+            priority: Default::default(),
+            flags: Default::default(),
         }
     }
 
