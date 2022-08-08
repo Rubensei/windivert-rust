@@ -133,6 +133,31 @@ impl WinDivert {
     pub fn new(
         filter: &str,
         layer: WinDivertLayer,
+        priority: i16,
+        flags: WinDivertFlags,
+    ) -> Result<Self, WinDivertError> {
+        let filter = CString::new(filter)?;
+        let windivert_tls_idx = unsafe { TlsAlloc() };
+        let handle =
+            unsafe { wd::WinDivertOpen(filter.as_ptr(), layer.into(), priority, flags.into()) };
+        if handle.is_invalid() {
+            match WinDivertOpenError::try_from(std::io::Error::last_os_error()) {
+                Ok(err) => Err(WinDivertError::Open(err)),
+                Err(err) => Err(WinDivertError::OSError(err)),
+            }
+        } else {
+            Ok(Self {
+                handle,
+                layer,
+                tls_idx: windivert_tls_idx,
+            })
+        }
+    }
+
+    /// Init windivert builder.
+    pub fn builder(
+        filter: &str,
+        layer: WinDivertLayer,
     ) -> WinDivertBuilder {
         WinDivertBuilder {
             filter: filter.to_string(),
