@@ -8,9 +8,9 @@ This projects allows you to use [WinDivert](https://www.reqrypt.org/windivert.ht
  * `windivert` [![crates.io](https://img.shields.io/crates/v/windivert)](https://crates.io/crates/windivert) [![docs](https://docs.rs/windivert/badge.svg)](https://docs.rs/windivert/): (WIP) Built on top of `windivert-sys` and providing a friendlier Rust API and some abstractions.
 
 # Build
-To be able to build `windivert-sys` (or `windivert`, since it dependes on it) you require the WinDivert library files:
- * It's recommended to specify the path of the folder containing pre downloaded dll, lib & sys files using the `WINDIVERT_PATH` environment variable.
- * As a fallback windivert dll & lib files will be compiled from source. To avoid multiple compilations it's possible to specify a path to save the generated files using `WINDIVERT_DLL_OUTPUT` environment variable. **This method won't compile the sys driver files required to use windivert. Sys files must always be provided.**
+To be able to build `windivert-sys` you require WinDivert library files:
+ * It's recommended to specify the path of the folder containing downloaded dll, lib & sys files using the `WINDIVERT_PATH` environment variable.
+ * As a fallback windivert dll & lib files can be compiled from source if the **vendored** feature is enabled. To avoid multiple compilations set `WINDIVERT_DLL_OUTPUT` environment variable to save the generated build. **This method won't compile the sys driver files required to use windivert. Sys files must always be provided.**
 
 # Usage
  * `windivert-sys` shares the same API the native library uses. Read [official documentation](https://www.reqrypt.org/windivert-doc.html) for more details.

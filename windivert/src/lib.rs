@@ -16,7 +16,9 @@ use windows::{
     core::{Error as WinError, Result as WinResult, PCSTR},
     Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
     Win32::{
-        Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, WAIT_TIMEOUT, WAIT_IO_COMPLETION, GetLastError},
+        Foundation::{
+            GetLastError, BOOL, ERROR_IO_PENDING, HANDLE, WAIT_IO_COMPLETION, WAIT_TIMEOUT,
+        },
         System::{
             Ioctl::FILE_DEVICE_NETWORK,
             Services::{
@@ -104,8 +106,14 @@ impl WinDivertBuilder {
     pub fn build(self) -> Result<WinDivert, WinDivertError> {
         let filter = CString::new(self.filter)?;
         let windivert_tls_idx = unsafe { TlsAlloc() };
-        let handle =
-            unsafe { wd::WinDivertOpen(filter.as_ptr(), self.layer.into(), self.priority, self.flags.into()) };
+        let handle = unsafe {
+            wd::WinDivertOpen(
+                filter.as_ptr(),
+                self.layer.into(),
+                self.priority,
+                self.flags.into(),
+            )
+        };
         if handle.is_invalid() {
             match WinDivertOpenError::try_from(std::io::Error::last_os_error()) {
                 Ok(err) => Err(WinDivertError::Open(err)),
@@ -155,10 +163,7 @@ impl WinDivert {
     }
 
     /// Init windivert builder.
-    pub fn builder(
-        filter: &str,
-        layer: WinDivertLayer,
-    ) -> WinDivertBuilder {
+    pub fn builder(filter: &str, layer: WinDivertLayer) -> WinDivertBuilder {
         WinDivertBuilder {
             filter: filter.to_string(),
             layer,
@@ -172,8 +177,8 @@ impl WinDivert {
         unsafe {
             event.0 = TlsGetValue(tls_idx) as isize;
             if event.is_invalid() {
-                event = CreateEventA(std::ptr::null_mut(), false, false, PCSTR::null())?;
-                TlsSetValue(tls_idx, event.0 as *mut c_void);
+                event = CreateEventA(None, false, false, None)?;
+                TlsSetValue(tls_idx, Some(event.0 as *mut c_void));
             }
         }
         Ok(event)
@@ -319,16 +324,16 @@ impl WinDivert {
                 .unwrap()
                 .ControlCode()
                 .unwrap(),
-                &mut ioctl as *mut _ as *mut c_void,
+                Some(&mut ioctl as *mut _ as *mut c_void),
                 std::mem::size_of::<WINDIVERT_IOCTL_RECV>() as u32,
-                buffer.as_mut_ptr() as *mut c_void,
+                Some(buffer.as_mut_ptr() as *mut c_void),
                 buffer.len() as u32,
-                &mut packet_length,
-                &mut overlapped,
+                Some(&mut packet_length),
+                Some(&mut overlapped),
             )
         };
 
-        if !res.as_bool() && unsafe {GetLastError()} == ERROR_IO_PENDING {
+        if !res.as_bool() && unsafe { GetLastError() } == ERROR_IO_PENDING {
             loop {
                 let res = unsafe {
                     GetOverlappedResultEx(
@@ -342,7 +347,7 @@ impl WinDivert {
                 if res.as_bool() {
                     break;
                 } else {
-                    match unsafe {GetLastError()} {
+                    match unsafe { GetLastError() } {
                         WAIT_TIMEOUT => {
                             unsafe { CancelIo(self.handle) };
                             return Ok(None);
@@ -397,16 +402,16 @@ impl WinDivert {
                 .unwrap()
                 .ControlCode()
                 .unwrap(),
-                &mut ioctl as *mut _ as *mut c_void,
+                Some(&mut ioctl as *mut _ as *mut c_void),
                 std::mem::size_of::<WINDIVERT_IOCTL_RECV>() as u32,
-                buffer.as_mut_ptr() as *mut c_void,
+                Some(buffer.as_mut_ptr() as *mut c_void),
                 buffer.len() as u32,
-                &mut packet_length,
-                &mut overlapped,
+                Some(&mut packet_length),
+                Some(&mut overlapped),
             )
         };
 
-        if !res.as_bool() && unsafe {GetLastError()} == ERROR_IO_PENDING {
+        if !res.as_bool() && unsafe { GetLastError() } == ERROR_IO_PENDING {
             loop {
                 let res = unsafe {
                     GetOverlappedResultEx(
@@ -421,7 +426,7 @@ impl WinDivert {
                 if res.as_bool() {
                     break;
                 } else {
-                    match unsafe {GetLastError()} {
+                    match unsafe { GetLastError() } {
                         WAIT_TIMEOUT => {
                             unsafe { CancelIo(self.handle) };
                             return Ok(None);
@@ -529,11 +534,11 @@ impl WinDivert {
     pub fn uninstall() -> WinResult<()> {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
         unsafe {
-            let manager = OpenSCManagerA(PCSTR::null(), PCSTR::null(), SC_MANAGER_ALL_ACCESS)?;
+            let manager = OpenSCManagerA(None, None, SC_MANAGER_ALL_ACCESS)?;
             let service = OpenServiceA(
                 manager,
                 PCSTR::from_raw("WinDivert".as_ptr()),
-                SC_MANAGER_ALL_ACCESS
+                SC_MANAGER_ALL_ACCESS,
             )?;
             try_win!(ControlService(service, SERVICE_CONTROL_STOP, status));
             try_win!(CloseServiceHandle(service));
