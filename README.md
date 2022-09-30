@@ -1,5 +1,5 @@
 # WinDivert 2 Rust Wrapper
-[![GitHub](https://img.shields.io/github/license/Rubensei/windivert-rust?color=blue)](https://raw.githubusercontent.com/Rubensei/windivert-rust/master/LICENSE.md)
+[![GitHub](https://img.shields.io/github/license/Rubensei/windivert-rust?color=blue)](https://raw.githubusercontent.com/Rubensei/windivert-rust/master/LICENSE)
 
 **Note**: This is a work in process, so the crates won't follow semantic versioning until 1.0.0 release, so any version change below 1.0.0 might introduce breaking changes in the API or the crate usage in general.
 
