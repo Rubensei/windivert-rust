@@ -12,6 +12,7 @@ mod packet;
 
 use error::*;
 use sys::{address::WINDIVERT_ADDRESS, ioctl::WINDIVERT_IOCTL_RECV};
+pub use sys::{WinDivertEvent, WinDivertParam, WinDivertShutdownMode};
 use windivert_sys as sys;
 use windows::{
     Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
@@ -25,17 +26,21 @@ use windows::{
     },
 };
 
-pub use divert::*;
-pub use error::WinDivertError;
-pub use packet::*;
-pub use sys::{
-    WinDivertEvent, WinDivertFlags, WinDivertLayer, WinDivertParam, WinDivertShutdownMode,
-};
-
 use std::{
     convert::TryFrom,
     ffi::{c_void, CString},
 };
+
+mod prelude {
+    pub use windivert_sys::{WinDivertFlags, WinDivertLayer};
+
+    pub use crate::divert::*;
+    pub use crate::error::*;
+    pub use crate::packet::*;
+    pub use crate::{CloseAction, WinDivert};
+}
+
+use prelude::*;
 
 use etherparse::{InternetSlice, SlicedPacket};
 

@@ -5,8 +5,8 @@ use std::{
     mem::MaybeUninit,
 };
 
-use crate::{error::WinDivertOpenError, CloseAction, WinDivert, WinDivertError};
-use sys::{WinDivertFlags, WinDivertLayer, WinDivertParam, WinDivertShutdownMode};
+use crate::prelude::*;
+use sys::{WinDivertParam, WinDivertShutdownMode};
 use windivert_sys as sys;
 
 use windows::{
