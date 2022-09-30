@@ -11,6 +11,29 @@ pub struct WinDivertPacket {
     pub data: Vec<u8>,
 }
 
+/// Raw packet using an already allocated buffer
+pub struct WinDivertPacketSlice<'a> {
+    pub(crate) address: WINDIVERT_ADDRESS,
+    /// Raw captured data
+    pub data: &'a mut [u8],
+}
+
+impl<'a> WinDivertPacketSlice<'a> {
+    /// Create owned packet from slice
+    pub fn into_owned(self) -> WinDivertPacket {
+        WinDivertPacket {
+            address: self.address,
+            data: self.data.to_vec(),
+        }
+    }
+}
+
+impl<'a> Into<WinDivertPacket> for WinDivertPacketSlice<'a> {
+    fn into(self) -> WinDivertPacket {
+        self.into_owned()
+    }
+}
+
 impl WinDivertPacket {
     /// Parse a raw packet
     pub fn parse<'a>(self) -> WinDivertParsedPacket<'a> {
@@ -43,7 +66,7 @@ impl WinDivertPacket {
     }
 
     /// Parse a borrowed raw packet
-    pub fn parse_slice<'a>(&'a self) -> WinDivertParsedSlice<'a> {
+    pub fn parse_slice(&self) -> WinDivertParsedSlice {
         match self.address.layer() {
             windivert_sys::WinDivertLayer::Network | windivert_sys::WinDivertLayer::Forward => {
                 WinDivertParsedSlice::Network {
@@ -110,7 +133,7 @@ pub enum WinDivertParsedSlice<'a> {
         /// WinDivert data associated with the packet.
         addr: WinDivertNetworkData<'a>,
         /// Raw captured data.
-        data: &'a Vec<u8>,
+        data: &'a [u8],
     },
     /// Packet type returned by handles using [`WinDivertLayer::Flow`](super::WinDivertLayer::Flow).
     Flow {

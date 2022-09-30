@@ -1,6 +1,6 @@
 [package]
 name = "windivert"
-version = "0.5.0-alpha.2"
+version = "0.5.0-alpha.3"
 description = "Wrapper library around windivert-sys"
 authors = ["Ruben Serrano Izquierdo <rserranoizq@gmail.com>"]
 repository = "https://github.com/Rubensei/windivert-rust.git"
@@ -17,10 +17,10 @@ vendored = ["windivert-sys/vendored"]
 
 [dependencies]
 etherparse = "0.12"
-windivert-sys = { version = "0.9.0-alpha.2", path = "../windivert-sys" }
+windivert-sys = { version = "0.9.0", path = "../windivert-sys" }
 
 [dependencies.windows]
-version = "0.41.0"
+version = "0.42.0"
 features = [
 	"Devices_Custom",
 	"Win32_Devices",

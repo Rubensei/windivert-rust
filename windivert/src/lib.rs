@@ -6,72 +6,38 @@ Wrapper around [`windivert_sys`] ffi crate.
 
 /// WinDivert address data structures
 pub mod address;
+mod divert;
 mod error;
 mod packet;
 
 use error::*;
-use wd::{address::WINDIVERT_ADDRESS, ioctl::WINDIVERT_IOCTL_RECV};
-use windivert_sys as wd;
+use sys::{address::WINDIVERT_ADDRESS, ioctl::WINDIVERT_IOCTL_RECV};
+use windivert_sys as sys;
 use windows::{
-    core::{Error as WinError, Result as WinResult, PCSTR},
     Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
     Win32::{
-        Foundation::{
-            GetLastError, BOOL, ERROR_IO_PENDING, HANDLE, WAIT_IO_COMPLETION, WAIT_TIMEOUT,
-        },
+        Foundation::{GetLastError, ERROR_IO_PENDING, HANDLE, WAIT_IO_COMPLETION, WAIT_TIMEOUT},
         System::{
             Ioctl::FILE_DEVICE_NETWORK,
-            Services::{
-                CloseServiceHandle, ControlService, OpenSCManagerA, OpenServiceA,
-                SC_MANAGER_ALL_ACCESS, SERVICE_CONTROL_STOP, SERVICE_STATUS,
-            },
-            Threading::{CreateEventA, TlsAlloc, TlsGetValue, TlsSetValue},
+            Threading::TlsAlloc,
             IO::{CancelIo, DeviceIoControl, GetOverlappedResultEx, OVERLAPPED},
         },
     },
 };
 
+pub use divert::*;
 pub use error::WinDivertError;
 pub use packet::*;
-pub use wd::{
+pub use sys::{
     WinDivertEvent, WinDivertFlags, WinDivertLayer, WinDivertParam, WinDivertShutdownMode,
 };
 
 use std::{
     convert::TryFrom,
     ffi::{c_void, CString},
-    mem::MaybeUninit,
 };
 
 use etherparse::{InternetSlice, SlicedPacket};
-
-macro_rules! try_win {
-    ($expr:expr) => {{
-        let x = $expr;
-        if x == BOOL::from(false) {
-            return Err(WinError::from(GetLastError()));
-        } else {
-            x
-        }
-    }};
-
-    ($expr:expr, $value:expr) => {{
-        let x = $expr;
-        if x == $value {
-            return Err(WinError::from(GetLastError()));
-        } else {
-            x
-        }
-    }};
-}
-
-macro_rules! try_divert {
-    ($expr:expr) => {
-        if $expr == BOOL::from(false) {
-            return Err(std::io::Error::last_os_error().into());
-        }
-    };
-}
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
 
@@ -107,7 +73,7 @@ impl WinDivertBuilder {
         let filter = CString::new(self.filter)?;
         let windivert_tls_idx = unsafe { TlsAlloc() };
         let handle = unsafe {
-            wd::WinDivertOpen(
+            sys::WinDivertOpen(
                 filter.as_ptr(),
                 self.layer.into(),
                 self.priority,
@@ -137,31 +103,6 @@ pub struct WinDivert {
 }
 
 impl WinDivert {
-    /// Open a handle using the specified parameters.
-    pub fn new(
-        filter: &str,
-        layer: WinDivertLayer,
-        priority: i16,
-        flags: WinDivertFlags,
-    ) -> Result<Self, WinDivertError> {
-        let filter = CString::new(filter)?;
-        let windivert_tls_idx = unsafe { TlsAlloc() };
-        let handle =
-            unsafe { wd::WinDivertOpen(filter.as_ptr(), layer.into(), priority, flags.into()) };
-        if handle.is_invalid() {
-            match WinDivertOpenError::try_from(std::io::Error::last_os_error()) {
-                Ok(err) => Err(WinDivertError::Open(err)),
-                Err(err) => Err(WinDivertError::OSError(err)),
-            }
-        } else {
-            Ok(Self {
-                handle,
-                layer,
-                tls_idx: windivert_tls_idx,
-            })
-        }
-    }
-
     /// Init windivert builder.
     pub fn builder(filter: &str, layer: WinDivertLayer) -> WinDivertBuilder {
         WinDivertBuilder {
@@ -170,18 +111,6 @@ impl WinDivert {
             priority: Default::default(),
             flags: Default::default(),
         }
-    }
-
-    fn get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
-        let mut event = HANDLE::default();
-        unsafe {
-            event.0 = TlsGetValue(tls_idx) as isize;
-            if event.is_invalid() {
-                event = CreateEventA(None, false, false, None)?;
-                TlsSetValue(tls_idx, Some(event.0 as *mut c_void));
-            }
-        }
-        Ok(event)
     }
 
     fn parse_packets(
@@ -226,36 +155,6 @@ impl WinDivert {
         packets
     }
 
-    /// Single packet blocking recv function.
-    pub fn recv(&self, buffer_size: usize) -> Result<WinDivertPacket, WinDivertError> {
-        let mut packet_length = 0;
-        let mut buffer = vec![0u8; buffer_size];
-        let mut addr = WINDIVERT_ADDRESS::default();
-        if unsafe {
-            wd::WinDivertRecv(
-                self.handle,
-                buffer.as_mut_ptr() as *mut c_void,
-                buffer.len() as u32,
-                &mut packet_length,
-                &mut addr,
-            )
-        }
-        .as_bool()
-        {
-            buffer.truncate(packet_length as usize);
-            Ok(WinDivertPacket {
-                address: addr,
-                data: buffer,
-            })
-        } else {
-            let err = WinDivertRecvError::try_from(std::io::Error::last_os_error());
-            match err {
-                Ok(err) => Err(WinDivertError::Recv(err)),
-                Err(err) => Err(WinDivertError::OSError(err)),
-            }
-        }
-    }
-
     /// Batched blocking recv function.
     pub fn recv_ex(
         &self,
@@ -270,7 +169,7 @@ impl WinDivert {
             vec![WINDIVERT_ADDRESS::default(); packet_count];
 
         if unsafe {
-            wd::WinDivertRecvEx(
+            sys::WinDivertRecvEx(
                 self.handle,
                 buffer.as_mut_ptr() as *mut c_void,
                 buffer.len() as u32,
@@ -448,22 +347,6 @@ impl WinDivert {
         Ok(Some(self.parse_packets(buffer, addr_buffer)))
     }
 
-    /// Single packet send function.
-    pub fn send<T: Into<WinDivertPacket>>(&self, packet: T) -> Result<u32, WinDivertError> {
-        let mut injected_length = 0;
-        let mut packet = packet.into();
-        unsafe {
-            try_divert!(wd::WinDivertSend(
-                self.handle,
-                packet.data.as_mut_ptr() as *const c_void,
-                packet.data.len() as u32,
-                &mut injected_length,
-                &packet.address,
-            ))
-        }
-        Ok(injected_length)
-    }
-
     /// Batched send function.
     pub fn send_ex<T: Into<WinDivertPacket>>(
         &self,
@@ -478,8 +361,9 @@ impl WinDivert {
             packet_buffer.append(&mut packet.data);
             address_buffer.push(packet.address);
         });
-        unsafe {
-            try_divert!(wd::WinDivertSendEx(
+
+        let res = unsafe {
+            sys::WinDivertSendEx(
                 self.handle,
                 packet_buffer.as_mut_ptr() as *const c_void,
                 packet_buffer.len() as u32,
@@ -488,62 +372,13 @@ impl WinDivert {
                 address_buffer.as_ptr(),
                 (std::mem::size_of::<WINDIVERT_ADDRESS>() * packet_count) as u32,
                 std::ptr::null_mut(),
-            ))
+            )
         };
+
+        if !res.as_bool() {
+            return Err(std::io::Error::last_os_error().into());
+        }
+
         Ok(injected_length)
-    }
-
-    /// Handle close function.
-    pub fn close(&mut self, action: CloseAction) -> WinResult<()> {
-        unsafe { try_win!(wd::WinDivertClose(self.handle)) };
-        match action {
-            CloseAction::Uninstall => WinDivert::uninstall(),
-            CloseAction::Nothing => Ok(()),
-        }
-    }
-
-    /// Methods that allows to query the driver for parameters.
-    pub fn get_param(&self, param: WinDivertParam) -> Result<u64, WinDivertError> {
-        let mut value = 0;
-        unsafe {
-            try_divert!(wd::WinDivertGetParam(self.handle, param.into(), &mut value));
-        }
-        Ok(value)
-    }
-
-    /// Method that allows setting driver parameters.
-    pub fn set_param(&self, param: WinDivertParam, value: u64) -> Result<(), WinDivertError> {
-        match param {
-            WinDivertParam::VersionMajor | WinDivertParam::VersionMinor => {
-                Err(WinDivertError::Parameter)
-            }
-            _ => {
-                unsafe { try_divert!(wd::WinDivertSetParam(self.handle, param.into(), value)) }
-                Ok(())
-            }
-        }
-    }
-
-    /// Shutdown function.
-    pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> WinResult<()> {
-        unsafe { try_win!(wd::WinDivertShutdown(self.handle, mode.into())) };
-        Ok(())
-    }
-
-    /// Method that tries to uninstall WinDivert driver.
-    pub fn uninstall() -> WinResult<()> {
-        let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
-        unsafe {
-            let manager = OpenSCManagerA(None, None, SC_MANAGER_ALL_ACCESS)?;
-            let service = OpenServiceA(
-                manager,
-                PCSTR::from_raw("WinDivert".as_ptr()),
-                SC_MANAGER_ALL_ACCESS,
-            )?;
-            try_win!(ControlService(service, SERVICE_CONTROL_STOP, status));
-            try_win!(CloseServiceHandle(service));
-            try_win!(CloseServiceHandle(manager));
-        }
-        Ok(())
     }
 }

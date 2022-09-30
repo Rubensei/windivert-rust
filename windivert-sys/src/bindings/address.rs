@@ -172,7 +172,7 @@ impl WINDIVERT_ADDRESS {
     /// Getter for the handle [`event`](super::WinDivertEvent)
     pub fn event(&self) -> WinDivertEvent {
         WinDivertEvent::try_from(self.addr_bitfield.get(8usize, 8u8) as u8)
-            .expect("Event always is correct since teh value comes from the DLL functions.")
+            .expect("Event always is correct since the value comes from the DLL functions.")
     }
     #[inline]
     /// Setter for the handle [`event`](super::WinDivertEvent)

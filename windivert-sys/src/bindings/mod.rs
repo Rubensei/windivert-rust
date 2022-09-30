@@ -37,6 +37,14 @@ pub const WINDIVERT_PARAM_QUEUE_SIZE_DEFAULT: u64 = 4194304; /* 4MB */
 pub const WINDIVERT_PARAM_QUEUE_SIZE_MIN: u64 = 65535; /* 64KB */
 /// Maximum valid value for queue size parameter.
 pub const WINDIVERT_PARAM_QUEUE_SIZE_MAX: u64 = 33554432; /* 32MB */
+/// Maximum valid value for priority parameter.
+pub const WINDIVERT_PRIORITY_MAX: u32 = 30000;
+/// Minimum valid value for priority parameter.
+pub const WINDIVERT_PRIORITY_MIN: i32 = -30000;
+/// Maximum valid batch length.
+pub const WINDIVERT_BATCH_MAX: u32 = 255;
+/// Maximum valid mtu size.
+pub const WINDIVERT_MTU_MAX: u32 = 65575;
 
 extern "C" {
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_open)
