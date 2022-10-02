@@ -1,15 +1,17 @@
-use crate::{
-    error::WinDivertRecvError, WinDivert, WinDivertError, WinDivertPacket, WinDivertPacketSlice,
-};
 use std::{ffi::c_void, mem::MaybeUninit};
+
+use crate::prelude::*;
+use sys::address::WINDIVERT_ADDRESS;
 use windivert_sys as sys;
+
+// TODO: Batch recv
 
 impl WinDivert {
     /// Single packet blocking recv function.
     pub fn recv<'a>(
         &self,
         buffer: Option<&'a mut [u8]>,
-    ) -> Result<Option<WinDivertPacketSlice<'a>>, WinDivertError> {
+    ) -> Result<Option<WinDivertPacket<'a>>, WinDivertError> {
         let mut packet_length = 0;
         let mut addr = MaybeUninit::uninit();
         let (buffer_ptr, buffer_len) = if let Some(buffer) = &buffer {
@@ -29,9 +31,9 @@ impl WinDivert {
         };
 
         if res.as_bool() {
-            Ok(buffer.map(|buffer| WinDivertPacketSlice {
+            Ok(buffer.map(|buffer| WinDivertPacket {
                 address: unsafe { addr.assume_init() },
-                data: &mut buffer[..packet_length as usize],
+                data: buffer[..packet_length as usize].into(),
             }))
         } else {
             let err = WinDivertRecvError::try_from(std::io::Error::last_os_error());
@@ -43,17 +45,54 @@ impl WinDivert {
     }
 
     /// Single packet send function.
-    pub fn send<T: Into<WinDivertPacket>>(&self, packet: T) -> Result<u32, WinDivertError> {
+    pub fn send(&self, packet: &WinDivertPacket) -> Result<u32, WinDivertError> {
         let mut injected_length = 0;
-        let mut packet = packet.into();
 
         let res = unsafe {
             sys::WinDivertSend(
                 self.handle,
-                packet.data.as_mut_ptr() as *const c_void,
+                packet.data.as_ptr() as *const c_void,
                 packet.data.len() as u32,
                 &mut injected_length,
                 &packet.address,
+            )
+        };
+
+        if !res.as_bool() {
+            return Err(std::io::Error::last_os_error().into());
+        }
+
+        Ok(injected_length)
+    }
+
+    /// Batched send function.
+    pub fn send_ex<'data, 'packets, P, I>(&self, packets: P) -> Result<u32, WinDivertError>
+    where
+        P: IntoIterator<IntoIter = I>,
+        I: ExactSizeIterator<Item = &'packets WinDivertPacket<'data>>,
+        'data: 'packets,
+    {
+        let mut packets = packets.into_iter();
+        let packet_count = packets.len();
+        let mut injected_length = 0;
+        let capacity = packets.by_ref().map(|p| p.data.len()).sum();
+        let mut packet_buffer: Vec<u8> = Vec::with_capacity(capacity);
+        let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::with_capacity(packet_count);
+        packets.into_iter().for_each(|packet| {
+            packet_buffer.extend(&packet.data[..]);
+            address_buffer.push(packet.address);
+        });
+
+        let res = unsafe {
+            sys::WinDivertSendEx(
+                self.handle,
+                packet_buffer.as_ptr() as *const c_void,
+                packet_buffer.len() as u32,
+                &mut injected_length,
+                0,
+                address_buffer.as_ptr(),
+                (std::mem::size_of::<WINDIVERT_ADDRESS>() * packet_count) as u32,
+                std::ptr::null_mut(),
             )
         };
 

@@ -10,114 +10,19 @@ mod divert;
 mod error;
 mod packet;
 
-use error::*;
-use sys::{address::WINDIVERT_ADDRESS, ioctl::WINDIVERT_IOCTL_RECV};
-pub use sys::{WinDivertEvent, WinDivertParam, WinDivertShutdownMode};
-use windivert_sys as sys;
-use windows::{
-    Devices::Custom::{IOControlAccessMode, IOControlBufferingMethod, IOControlCode},
-    Win32::{
-        Foundation::{GetLastError, ERROR_IO_PENDING, HANDLE, WAIT_IO_COMPLETION, WAIT_TIMEOUT},
-        System::{
-            Ioctl::FILE_DEVICE_NETWORK,
-            Threading::TlsAlloc,
-            IO::{CancelIo, DeviceIoControl, GetOverlappedResultEx, OVERLAPPED},
-        },
-    },
-};
-
-use std::{
-    convert::TryFrom,
-    ffi::{c_void, CString},
-};
-
-mod prelude {
-    pub use windivert_sys::{WinDivertFlags, WinDivertLayer};
+/// Prelude module for [`WinDivert`].
+pub mod prelude {
+    pub use windivert_sys::{
+        WinDivertEvent, WinDivertFlags, WinDivertLayer, WinDivertParam, WinDivertShutdownMode,
+    };
 
     pub use crate::divert::*;
     pub use crate::error::*;
     pub use crate::packet::*;
-    pub use crate::{CloseAction, WinDivert};
 }
 
-use prelude::*;
-
-use etherparse::{InternetSlice, SlicedPacket};
-
-const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
-
-/// Action parameter for  [`WinDivert::close()`](`fn@WinDivert::close`)
-pub enum CloseAction {
-    /// Close the handle and try to uninstall the WinDivert driver.
-    Uninstall,
-    /// Close the handle without uninstalling the driver.
-    Nothing,
-}
-
-/// Builder struct for WinDivert
-pub struct WinDivertBuilder {
-    filter: String,
-    layer: WinDivertLayer,
-    priority: i16,
-    flags: WinDivertFlags,
-}
-
-impl WinDivertBuilder {
-    /// Priority setter
-    pub fn priority(self, priority: i16) -> Self {
-        Self { priority, ..self }
-    }
-
-    /// Flags setter
-    pub fn flags(self, flags: WinDivertFlags) -> Self {
-        Self { flags, ..self }
-    }
-
-    /// Builder build method
-    pub fn build(self) -> Result<WinDivert, WinDivertError> {
-        let filter = CString::new(self.filter)?;
-        let windivert_tls_idx = unsafe { TlsAlloc() };
-        let handle = unsafe {
-            sys::WinDivertOpen(
-                filter.as_ptr(),
-                self.layer.into(),
-                self.priority,
-                self.flags.into(),
-            )
-        };
-        if handle.is_invalid() {
-            match WinDivertOpenError::try_from(std::io::Error::last_os_error()) {
-                Ok(err) => Err(WinDivertError::Open(err)),
-                Err(err) => Err(WinDivertError::OSError(err)),
-            }
-        } else {
-            Ok(WinDivert {
-                handle,
-                layer: self.layer,
-                tls_idx: windivert_tls_idx,
-            })
-        }
-    }
-}
-
-/// Main wrapper struct around windivert functionalities.
-pub struct WinDivert {
-    handle: HANDLE,
-    layer: WinDivertLayer,
-    tls_idx: u32,
-}
-
+/*
 impl WinDivert {
-    /// Init windivert builder.
-    pub fn builder(filter: &str, layer: WinDivertLayer) -> WinDivertBuilder {
-        WinDivertBuilder {
-            filter: filter.to_string(),
-            layer,
-            priority: Default::default(),
-            flags: Default::default(),
-        }
-    }
-
     fn parse_packets(
         &self,
         mut buffer: Vec<u8>,
@@ -351,39 +256,5 @@ impl WinDivert {
         buffer.truncate(packet_length as usize);
         Ok(Some(self.parse_packets(buffer, addr_buffer)))
     }
-
-    /// Batched send function.
-    pub fn send_ex<T: Into<WinDivertPacket>>(
-        &self,
-        mut data: Vec<T>,
-    ) -> Result<u32, WinDivertError> {
-        let packet_count = data.len();
-        let mut injected_length = 0;
-        let mut packet_buffer = Vec::with_capacity(data.len());
-        let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::with_capacity(data.len());
-        data.drain(..).for_each(|packet| {
-            let mut packet: WinDivertPacket = packet.into();
-            packet_buffer.append(&mut packet.data);
-            address_buffer.push(packet.address);
-        });
-
-        let res = unsafe {
-            sys::WinDivertSendEx(
-                self.handle,
-                packet_buffer.as_mut_ptr() as *const c_void,
-                packet_buffer.len() as u32,
-                &mut injected_length,
-                0,
-                address_buffer.as_ptr(),
-                (std::mem::size_of::<WINDIVERT_ADDRESS>() * packet_count) as u32,
-                std::ptr::null_mut(),
-            )
-        };
-
-        if !res.as_bool() {
-            return Err(std::io::Error::last_os_error().into());
-        }
-
-        Ok(injected_length)
-    }
 }
+*/

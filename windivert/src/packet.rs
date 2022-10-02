@@ -3,95 +3,43 @@ use std::{borrow::Cow, fmt::Debug};
 
 use windivert_sys::address::WINDIVERT_ADDRESS;
 
-#[derive(Debug)]
-/// Raw packet
-pub struct WinDivertPacket {
-    pub(crate) address: WINDIVERT_ADDRESS,
-    /// Raw captured data
-    pub data: Vec<u8>,
-}
-
+// TODO: Allow creating packets for injection.
 /// Raw packet using an already allocated buffer
-pub struct WinDivertPacketSlice<'a> {
+#[derive(Debug)]
+pub struct WinDivertPacket<'a> {
     pub(crate) address: WINDIVERT_ADDRESS,
     /// Raw captured data
-    pub data: &'a mut [u8],
+    pub data: Cow<'a, [u8]>,
 }
 
-impl<'a> WinDivertPacketSlice<'a> {
-    /// Create owned packet from slice
-    pub fn into_owned(self) -> WinDivertPacket {
-        WinDivertPacket {
-            address: self.address,
-            data: self.data.to_vec(),
-        }
-    }
-}
-
-impl<'a> Into<WinDivertPacket> for WinDivertPacketSlice<'a> {
-    fn into(self) -> WinDivertPacket {
-        self.into_owned()
-    }
-}
-
-impl WinDivertPacket {
+impl<'a> WinDivertPacket<'a> {
     /// Parse a raw packet
-    pub fn parse<'a>(self) -> WinDivertParsedPacket<'a> {
+    pub fn parse(self) -> WinDivertParsedPacket<'a> {
         match self.address.layer() {
             windivert_sys::WinDivertLayer::Network | windivert_sys::WinDivertLayer::Forward => {
                 WinDivertParsedPacket::Network {
-                    addr: WinDivertNetworkData {
-                        data: Cow::Owned(self.address),
-                    },
+                    addr: WinDivertNetworkData { data: self.address },
                     data: self.data,
                 }
             }
             windivert_sys::WinDivertLayer::Flow => WinDivertParsedPacket::Flow {
-                addr: WinDivertFlowData {
-                    data: Cow::Owned(self.address),
-                },
+                addr: WinDivertFlowData { data: self.address },
             },
             windivert_sys::WinDivertLayer::Socket => WinDivertParsedPacket::Socket {
-                addr: WinDivertSocketData {
-                    data: Cow::Owned(self.address),
-                },
+                addr: WinDivertSocketData { data: self.address },
             },
             windivert_sys::WinDivertLayer::Reflect => WinDivertParsedPacket::Reflect {
-                addr: WinDivertReflectData {
-                    data: Cow::Owned(self.address),
-                },
-                filter: self.data,
+                addr: WinDivertReflectData { data: self.address },
+                data: self.data,
             },
         }
     }
 
-    /// Parse a borrowed raw packet
-    pub fn parse_slice(&self) -> WinDivertParsedSlice {
-        match self.address.layer() {
-            windivert_sys::WinDivertLayer::Network | windivert_sys::WinDivertLayer::Forward => {
-                WinDivertParsedSlice::Network {
-                    addr: WinDivertNetworkData {
-                        data: Cow::Borrowed(&self.address),
-                    },
-                    data: &self.data,
-                }
-            }
-            windivert_sys::WinDivertLayer::Flow => WinDivertParsedSlice::Flow {
-                addr: WinDivertFlowData {
-                    data: Cow::Borrowed(&self.address),
-                },
-            },
-            windivert_sys::WinDivertLayer::Socket => WinDivertParsedSlice::Socket {
-                addr: WinDivertSocketData {
-                    data: Cow::Borrowed(&self.address),
-                },
-            },
-            windivert_sys::WinDivertLayer::Reflect => WinDivertParsedSlice::Reflect {
-                addr: WinDivertReflectData {
-                    data: Cow::Borrowed(&self.address),
-                },
-                filter: &self.data,
-            },
+    ///
+    pub fn into_owned(self) -> WinDivertPacket<'static> {
+        WinDivertPacket {
+            address: self.address.clone(),
+            data: self.data.into_owned().into(),
         }
     }
 }
@@ -102,68 +50,39 @@ pub enum WinDivertParsedPacket<'a> {
     /// Packet type returned by handles using [`WinDivertLayer::Network`](super::WinDivertLayer::Network).
     Network {
         /// WinDivert data associated with the packet.
-        addr: WinDivertNetworkData<'a>,
+        addr: WinDivertNetworkData,
         /// Raw captured data.
-        data: Vec<u8>,
+        data: Cow<'a, [u8]>,
     },
     /// Packet type returned by handles using [`WinDivertLayer::Flow`](super::WinDivertLayer::Flow).
     Flow {
         /// WinDivert data associated with the packet.
-        addr: WinDivertFlowData<'a>,
+        addr: WinDivertFlowData,
     },
     /// Packet type returned by handles using [`WinDivertLayer::Socket`](super::WinDivertLayer::Socket).
     Socket {
         /// WinDivert data associated with the packet.
-        addr: WinDivertSocketData<'a>,
+        addr: WinDivertSocketData,
     },
     /// Packet type returned by handles using [`WinDivertLayer::Reflect`](super::WinDivertLayer::Reflect).
     Reflect {
         /// WinDivert data associated with the packet.
-        addr: WinDivertReflectData<'a>,
+        addr: WinDivertReflectData,
         /// Object string representation of the filter used to open the handle.
-        filter: Vec<u8>,
+        data: Cow<'a, [u8]>,
     },
 }
 
-#[derive(Debug)]
-/// Parsed slice
-pub enum WinDivertParsedSlice<'a> {
-    /// Packet type returned by handles using [`WinDivertLayer::Network`](super::WinDivertLayer::Network).
-    Network {
-        /// WinDivert data associated with the packet.
-        addr: WinDivertNetworkData<'a>,
-        /// Raw captured data.
-        data: &'a [u8],
-    },
-    /// Packet type returned by handles using [`WinDivertLayer::Flow`](super::WinDivertLayer::Flow).
-    Flow {
-        /// WinDivert data associated with the packet.
-        addr: WinDivertFlowData<'a>,
-    },
-    /// Packet type returned by handles using [`WinDivertLayer::Socket`](super::WinDivertLayer::Socket).
-    Socket {
-        /// WinDivert data associated with the packet.
-        addr: WinDivertSocketData<'a>,
-    },
-    /// Packet type returned by handles using [`WinDivertLayer::Reflect`](super::WinDivertLayer::Reflect).
-    Reflect {
-        /// WinDivert data associated with the packet.
-        addr: WinDivertReflectData<'a>,
-        /// Object string representation of the filter used to open the handle.
-        filter: &'a Vec<u8>,
-    },
-}
-
-impl<'a> From<WinDivertParsedPacket<'a>> for WinDivertPacket {
-    fn from(packet: WinDivertParsedPacket) -> Self {
+impl<'a> From<WinDivertParsedPacket<'a>> for WinDivertPacket<'a> {
+    fn from(packet: WinDivertParsedPacket<'a>) -> Self {
         let (buffer, addr) = match packet {
             WinDivertParsedPacket::Network { addr, data } => (data, addr.data),
-            WinDivertParsedPacket::Flow { addr } => (Vec::new(), addr.data),
-            WinDivertParsedPacket::Socket { addr } => (Vec::new(), addr.data),
-            WinDivertParsedPacket::Reflect { addr, filter } => (filter, addr.data),
+            WinDivertParsedPacket::Flow { addr } => (Cow::default(), addr.data),
+            WinDivertParsedPacket::Socket { addr } => (Cow::default(), addr.data),
+            WinDivertParsedPacket::Reflect { addr, data } => (data, addr.data),
         };
         WinDivertPacket {
-            address: addr.into_owned(),
+            address: addr,
             data: buffer,
         }
     }

@@ -1,4 +1,5 @@
 mod blocking;
+mod builder;
 
 use std::{
     ffi::{c_void, CString},
@@ -12,7 +13,7 @@ use windivert_sys as sys;
 use windows::{
     core::{Error as WinError, Result as WinResult, PCSTR},
     Win32::{
-        Foundation::{GetLastError, BOOL, HANDLE},
+        Foundation::{GetLastError, HANDLE},
         System::{
             Services::{
                 CloseServiceHandle, ControlService, OpenSCManagerA, OpenServiceA,
@@ -23,24 +24,11 @@ use windows::{
     },
 };
 
-macro_rules! try_win {
-    ($expr:expr) => {{
-        let x = $expr;
-        if x == BOOL::from(false) {
-            return Err(WinError::from(GetLastError()));
-        } else {
-            x
-        }
-    }};
-
-    ($expr:expr, $value:expr) => {{
-        let x = $expr;
-        if x == $value {
-            return Err(WinError::from(GetLastError()));
-        } else {
-            x
-        }
-    }};
+/// Main wrapper struct around windivert functionalities.
+pub struct WinDivert {
+    handle: HANDLE,
+    layer: WinDivertLayer,
+    tls_idx: u32,
 }
 
 /// Recv implementations
@@ -106,7 +94,14 @@ impl WinDivert {
 
     /// Handle close function.
     pub fn close(&mut self, action: CloseAction) -> WinResult<()> {
-        unsafe { try_win!(sys::WinDivertClose(self.handle)) };
+        let res = unsafe { sys::WinDivertClose(self.handle) };
+        if !res.as_bool() {
+            return Err(WinError::from(unsafe { GetLastError() }));
+        }
+        let res = unsafe { sys::WinDivertClose(self.handle) };
+        if !res.as_bool() {
+            return Err(WinError::from(unsafe { GetLastError() }));
+        }
         match action {
             CloseAction::Uninstall => WinDivert::uninstall(),
             CloseAction::Nothing => Ok(()),
@@ -115,7 +110,10 @@ impl WinDivert {
 
     /// Shutdown function.
     pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> WinResult<()> {
-        unsafe { try_win!(sys::WinDivertShutdown(self.handle, mode.into())) };
+        let res = unsafe { sys::WinDivertShutdown(self.handle, mode.into()) };
+        if !res.as_bool() {
+            return Err(WinError::from(unsafe { GetLastError() }));
+        }
         Ok(())
     }
 
@@ -129,10 +127,33 @@ impl WinDivert {
                 PCSTR::from_raw("WinDivert".as_ptr()),
                 SC_MANAGER_ALL_ACCESS,
             )?;
-            try_win!(ControlService(service, SERVICE_CONTROL_STOP, status));
-            try_win!(CloseServiceHandle(service));
-            try_win!(CloseServiceHandle(manager));
+            let res = ControlService(service, SERVICE_CONTROL_STOP, status);
+            if !res.as_bool() {
+                return Err(WinError::from(GetLastError()));
+            }
+            let res = CloseServiceHandle(service);
+            if !res.as_bool() {
+                return Err(WinError::from(GetLastError()));
+            }
+            let res = CloseServiceHandle(manager);
+            if !res.as_bool() {
+                return Err(WinError::from(GetLastError()));
+            }
         }
         Ok(())
+    }
+}
+
+/// Action parameter for  [`WinDivert::close()`](`fn@WinDivert::close`)
+pub enum CloseAction {
+    /// Close the handle and try to uninstall the WinDivert driver.
+    Uninstall,
+    /// Close the handle without uninstalling the driver.
+    Nothing,
+}
+
+impl Default for CloseAction {
+    fn default() -> Self {
+        Self::Nothing
     }
 }

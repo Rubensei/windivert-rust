@@ -1,9 +1,6 @@
-use std::{
-    borrow::Cow,
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use super::{WinDivertEvent, WinDivertFlags, WinDivertLayer};
+use crate::prelude::*;
 use windivert_sys::address::*;
 
 macro_rules! addr_impl {
@@ -35,7 +32,7 @@ macro_rules! addr_impl {
 
         /// Outbound setter
         pub fn set_outbound(&mut self, value: bool) {
-            self.data.to_mut().set_outbound(value)
+            self.data.set_outbound(value)
         }
 
         /// Set to `true` for loopback packets, `false` otherwise
@@ -50,7 +47,7 @@ macro_rules! addr_impl {
 
         /// Impostor setter
         pub fn set_impostor(&mut self, value: bool) {
-            self.data.to_mut().set_impostor(value)
+            self.data.set_impostor(value)
         }
 
         /// Set to `true` for IPv6 packets/events, `false` otherwise
@@ -65,7 +62,7 @@ macro_rules! addr_impl {
 
         /// IPv4 checksum setter
         pub fn set_ip_checksum(&mut self, value: bool) {
-            self.data.to_mut().set_ipchecksum(value)
+            self.data.set_ipchecksum(value)
         }
 
         /// Set to `true` if the TCP checksum is valid, `false` otherwise.
@@ -75,7 +72,7 @@ macro_rules! addr_impl {
 
         /// TCP checksum setter
         pub fn set_tcp_checksum(&mut self, value: bool) {
-            self.data.to_mut().set_tcpchecksum(value)
+            self.data.set_tcpchecksum(value)
         }
 
         /// Set to `true` if the UDP checksum is valid, `false` otherwise.
@@ -85,18 +82,18 @@ macro_rules! addr_impl {
 
         /// UDP checksum setter
         pub fn set_udp_checksum(&mut self, value: bool) {
-            self.data.to_mut().set_udpchecksum(value)
+            self.data.set_udpchecksum(value)
         }
     };
 }
 
 #[derive(Debug, Default)]
 /// Extra address data for [`Network`](WinDivertLayer::Network) packets
-pub struct WinDivertNetworkData<'a> {
-    pub(crate) data: Cow<'a, WINDIVERT_ADDRESS>,
+pub struct WinDivertNetworkData {
+    pub(crate) data: WINDIVERT_ADDRESS,
 }
 
-impl<'a> WinDivertNetworkData<'a> {
+impl WinDivertNetworkData {
     addr_impl!();
 
     fn data(&self) -> &WINDIVERT_DATA_NETWORK {
@@ -104,7 +101,7 @@ impl<'a> WinDivertNetworkData<'a> {
     }
 
     fn data_mut(&mut self) -> &mut WINDIVERT_DATA_NETWORK {
-        unsafe { &mut self.data.to_mut().union_field.Network }
+        unsafe { &mut self.data.union_field.Network }
     }
 
     /// The interface index on which the packet arrived (for inbound packets), or is to be sent (for outbound packets)
@@ -130,14 +127,14 @@ impl<'a> WinDivertNetworkData<'a> {
 
 #[derive(Debug, Default)]
 /// Extra address data for [`Flow`](WinDivertLayer::Flow) packets
-pub struct WinDivertFlowData<'a> {
-    pub(crate) data: Cow<'a, WINDIVERT_ADDRESS>,
+pub struct WinDivertFlowData {
+    pub(crate) data: WINDIVERT_ADDRESS,
 }
 
 /// Extra address data for [`Socket`](WinDivertLayer::Socket) packets
-pub type WinDivertSocketData<'a> = WinDivertFlowData<'a>;
+pub type WinDivertSocketData = WinDivertFlowData;
 
-impl<'a> WinDivertFlowData<'a> {
+impl WinDivertFlowData {
     addr_impl!();
 
     fn data(&self) -> &WINDIVERT_DATA_FLOW {
@@ -207,11 +204,11 @@ impl<'a> WinDivertFlowData<'a> {
 
 #[derive(Debug)]
 /// Extra address data for [`Reflect`](WinDivertLayer::Reflect) packets
-pub struct WinDivertReflectData<'a> {
-    pub(crate) data: Cow<'a, WINDIVERT_ADDRESS>,
+pub struct WinDivertReflectData {
+    pub(crate) data: WINDIVERT_ADDRESS,
 }
 
-impl<'a> WinDivertReflectData<'a> {
+impl WinDivertReflectData {
     addr_impl!();
 
     fn data(&self) -> &WINDIVERT_DATA_REFLECT {
