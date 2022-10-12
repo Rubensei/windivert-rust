@@ -1,11 +1,13 @@
 mod blocking;
-mod builder;
+// TODO: mod builder;
 
 use std::{
     ffi::{c_void, CString},
+    marker::PhantomData,
     mem::MaybeUninit,
 };
 
+use crate::layer::{self as layer};
 use crate::prelude::*;
 use sys::{WinDivertParam, WinDivertShutdownMode};
 use windivert_sys as sys;
@@ -25,16 +27,17 @@ use windows::{
 };
 
 /// Main wrapper struct around windivert functionalities.
-pub struct WinDivert {
+#[non_exhaustive]
+pub struct WinDivert<L: layer::WinDivertLayerTrait> {
     handle: HANDLE,
-    layer: WinDivertLayer,
     tls_idx: u32,
+    _layer: PhantomData<L>,
 }
 
 /// Recv implementations
-impl WinDivert {
+impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     /// Open a handle using the specified parameters.
-    pub fn new(
+    fn new(
         filter: &str,
         layer: WinDivertLayer,
         priority: i16,
@@ -52,8 +55,8 @@ impl WinDivert {
         } else {
             Ok(Self {
                 handle,
-                layer,
                 tls_idx: windivert_tls_idx,
+                _layer: PhantomData::<L>,
             })
         }
     }
@@ -103,7 +106,7 @@ impl WinDivert {
             return Err(WinError::from(unsafe { GetLastError() }));
         }
         match action {
-            CloseAction::Uninstall => WinDivert::uninstall(),
+            CloseAction::Uninstall => Self::uninstall(),
             CloseAction::Nothing => Ok(()),
         }
     }
@@ -141,6 +144,61 @@ impl WinDivert {
             }
         }
         Ok(())
+    }
+}
+
+impl WinDivert<layer::NetworkLayer> {
+    /// WinDivert constructor for network layer.
+    pub fn network(
+        filter: &str,
+        priority: i16,
+        flags: WinDivertFlags,
+    ) -> Result<Self, WinDivertError> {
+        Self::new(filter, WinDivertLayer::Network, priority, flags)
+    }
+}
+
+impl WinDivert<layer::ForwardLayer> {
+    /// WinDivert constructor for forward layer.
+    pub fn forward(
+        filter: &str,
+        priority: i16,
+        flags: WinDivertFlags,
+    ) -> Result<Self, WinDivertError> {
+        Self::new(filter, WinDivertLayer::Forward, priority, flags)
+    }
+}
+
+impl WinDivert<layer::FlowLayer> {
+    /// WinDivert constructor for flow layer.
+    pub fn flow(
+        filter: &str,
+        priority: i16,
+        flags: WinDivertFlags,
+    ) -> Result<Self, WinDivertError> {
+        Self::new(filter, WinDivertLayer::Flow, priority, flags)
+    }
+}
+
+impl WinDivert<layer::SocketLayer> {
+    /// WinDivert constructor for socket layer.
+    pub fn socket(
+        filter: &str,
+        priority: i16,
+        flags: WinDivertFlags,
+    ) -> Result<Self, WinDivertError> {
+        Self::new(filter, WinDivertLayer::Socket, priority, flags)
+    }
+}
+
+impl WinDivert<layer::ReflectLayer> {
+    /// WinDivert constructor for reflect layer.
+    pub fn reflect(
+        filter: &str,
+        priority: i16,
+        flags: WinDivertFlags,
+    ) -> Result<Self, WinDivertError> {
+        Self::new(filter, WinDivertLayer::Reflect, priority, flags)
     }
 }
 

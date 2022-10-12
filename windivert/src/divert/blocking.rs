@@ -1,17 +1,19 @@
 use std::{ffi::c_void, mem::MaybeUninit};
 
+use crate::address::WinDivertAddress;
+use crate::layer;
 use crate::prelude::*;
 use sys::address::WINDIVERT_ADDRESS;
 use windivert_sys as sys;
 
 // TODO: Batch recv
 
-impl WinDivert {
+impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     /// Single packet blocking recv function.
     pub fn recv<'a>(
         &self,
         buffer: Option<&'a mut [u8]>,
-    ) -> Result<Option<WinDivertPacket<'a>>, WinDivertError> {
+    ) -> Result<Option<WinDivertPacket<'a, L>>, WinDivertError> {
         let mut packet_length = 0;
         let mut addr = MaybeUninit::uninit();
         let (buffer_ptr, buffer_len) = if let Some(buffer) = &buffer {
@@ -32,7 +34,7 @@ impl WinDivert {
 
         if res.as_bool() {
             Ok(buffer.map(|buffer| WinDivertPacket {
-                address: unsafe { addr.assume_init() },
+                address: WinDivertAddress::<L>::from_raw(unsafe { addr.assume_init() }),
                 data: buffer[..packet_length as usize].into(),
             }))
         } else {
@@ -45,7 +47,7 @@ impl WinDivert {
     }
 
     /// Single packet send function.
-    pub fn send(&self, packet: &WinDivertPacket) -> Result<u32, WinDivertError> {
+    pub fn send(&self, packet: &WinDivertPacket<L>) -> Result<u32, WinDivertError> {
         let mut injected_length = 0;
 
         let res = unsafe {
@@ -54,7 +56,7 @@ impl WinDivert {
                 packet.data.as_ptr() as *const c_void,
                 packet.data.len() as u32,
                 &mut injected_length,
-                &packet.address,
+                packet.address.as_ref(),
             )
         };
 
@@ -69,8 +71,9 @@ impl WinDivert {
     pub fn send_ex<'data, 'packets, P, I>(&self, packets: P) -> Result<u32, WinDivertError>
     where
         P: IntoIterator<IntoIter = I>,
-        I: ExactSizeIterator<Item = &'packets WinDivertPacket<'data>>,
+        I: ExactSizeIterator<Item = &'packets WinDivertPacket<'data, L>>,
         'data: 'packets,
+        L: 'packets,
     {
         let mut packets = packets.into_iter();
         let packet_count = packets.len();
@@ -78,9 +81,9 @@ impl WinDivert {
         let capacity = packets.by_ref().map(|p| p.data.len()).sum();
         let mut packet_buffer: Vec<u8> = Vec::with_capacity(capacity);
         let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::with_capacity(packet_count);
-        packets.into_iter().for_each(|packet| {
+        packets.for_each(|packet: &'packets WinDivertPacket<'data, L>| {
             packet_buffer.extend(&packet.data[..]);
-            address_buffer.push(packet.address);
+            address_buffer.push(packet.address.as_ref().clone());
         });
 
         let res = unsafe {
@@ -103,3 +106,13 @@ impl WinDivert {
         Ok(injected_length)
     }
 }
+
+impl WinDivert<layer::NetworkLayer> {}
+
+impl WinDivert<layer::ForwardLayer> {}
+
+impl WinDivert<layer::FlowLayer> {}
+
+impl WinDivert<layer::SocketLayer> {}
+
+impl WinDivert<layer::ReflectLayer> {}

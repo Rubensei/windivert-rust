@@ -8,6 +8,7 @@ Wrapper around [`windivert_sys`] ffi crate.
 pub mod address;
 mod divert;
 mod error;
+mod layer;
 mod packet;
 
 /// Prelude module for [`WinDivert`].
