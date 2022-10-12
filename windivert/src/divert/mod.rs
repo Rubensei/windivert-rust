@@ -7,7 +7,7 @@ use std::{
     mem::MaybeUninit,
 };
 
-use crate::layer::{self as layer};
+use crate::layer;
 use crate::prelude::*;
 use sys::{WinDivertParam, WinDivertShutdownMode};
 use windivert_sys as sys;
