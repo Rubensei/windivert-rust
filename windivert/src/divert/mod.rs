@@ -176,7 +176,12 @@ impl WinDivert<layer::FlowLayer> {
         priority: i16,
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
-        Self::new(filter, WinDivertLayer::Flow, priority, flags)
+        Self::new(
+            filter,
+            WinDivertLayer::Flow,
+            priority,
+            flags.set_recv_only().set_sniff(),
+        )
     }
 }
 
@@ -187,7 +192,12 @@ impl WinDivert<layer::SocketLayer> {
         priority: i16,
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
-        Self::new(filter, WinDivertLayer::Socket, priority, flags)
+        Self::new(
+            filter,
+            WinDivertLayer::Socket,
+            priority,
+            flags.set_recv_only(),
+        )
     }
 }
 
@@ -198,7 +208,12 @@ impl WinDivert<layer::ReflectLayer> {
         priority: i16,
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
-        Self::new(filter, WinDivertLayer::Reflect, priority, flags)
+        Self::new(
+            filter,
+            WinDivertLayer::Reflect,
+            priority,
+            flags.set_recv_only().set_sniff(),
+        )
     }
 }
 

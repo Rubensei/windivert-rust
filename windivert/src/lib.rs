@@ -7,9 +7,13 @@ Wrapper around [`windivert_sys`] ffi crate.
 /// WinDivert address data structures
 pub mod address;
 mod divert;
-mod error;
+/// WinDivert error types
+pub mod error;
 mod layer;
-mod packet;
+/// WinDivert packet types
+pub mod packet;
+
+pub use divert::*;
 
 /// Prelude module for [`WinDivert`].
 pub mod prelude {

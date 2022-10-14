@@ -10,15 +10,15 @@ WinDivert error type.
 pub enum WinDivertError {
     /// Unexpected value in type conversions.
     Value(WinDivertValueError),
-    /// Specific errors for [`WinDivert::new()`](fn@super::WinDivert::new).
+    /// Specific errors for divert constructor invocation.
     Open(WinDivertOpenError),
-    /// Specific errors for [`WinDivert::recv()`](fn@super::WinDivert::recv).
+    /// Specific errors for [`WinDivert::recv()`](fn@super::WinDivert::<L>::recv).
     Recv(WinDivertRecvError),
     /// Error for nul terminated filter strings.
     NullError(NulError),
     /// Generic OS error.
     OSError(std::io::Error),
-    /// Error indicating that a wrong parameter was used in [`set_param()`](fn@super::WinDivert::set_param)
+    /// Error indicating that a wrong parameter was used in [`set_param()`](fn@crate::WinDivert::set_param)
     Parameter,
 }
 
@@ -47,7 +47,7 @@ impl From<windows::core::Error> for WinDivertError {
 }
 
 /**
-Possible errors for [`WinDivertOpen()`](fn@super::WinDivertOpen)
+Possible errors for [`WinDivertOpen()`](fn@windivert_sys::WinDivertOpen)
 */
 #[derive(Debug)]
 pub enum WinDivertOpenError {
@@ -110,7 +110,7 @@ impl TryFrom<std::io::Error> for WinDivertOpenError {
 }
 
 /**
-Possible errors for [`WinDivertRecv()`](fn@super::WinDivertRecv)
+Possible errors for [`WinDivertRecv()`](fn@windivert_sys::WinDivertRecv)
 */
 #[derive(Debug)]
 pub enum WinDivertRecvError {

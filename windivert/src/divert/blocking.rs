@@ -320,24 +320,6 @@ impl WinDivert<layer::SocketLayer> {
         }
         Ok(packets)
     }
-
-    /// Single packet send function.
-    pub fn send(
-        &self,
-        packet: &WinDivertPacket<layer::SocketLayer>,
-    ) -> Result<u32, WinDivertError> {
-        self.internal_send(packet)
-    }
-
-    /// Batched packet send function.
-    pub fn send_ex<'data, 'packets, P, I>(&self, packets: P) -> Result<u32, WinDivertError>
-    where
-        P: IntoIterator<IntoIter = I>,
-        I: ExactSizeIterator<Item = &'packets WinDivertPacket<'data, layer::SocketLayer>>,
-        'data: 'packets,
-    {
-        self.internal_send_ex(packets.into_iter())
-    }
 }
 
 impl WinDivert<layer::ReflectLayer> {

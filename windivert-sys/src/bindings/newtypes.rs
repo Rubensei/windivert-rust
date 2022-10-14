@@ -267,9 +267,9 @@ Different flags affect how the opened handle behaves. The following flags are su
 Note that any combination of (`snif` | `drop`) or (`recv_only` | `send_only`) are considered invalid.
 
 Some layers have mandatory flags:
- * [`WinDivertLayer::Flow`]: (`sniff` | `recv_only`)
- * [`WinDivertLayer::Socket`]: `recv_only`
- * [`WinDivertLayer::Reflect`]: (`sniff` | `recv_only`)
+ * [`WinDivertLayer::Flow`](enum@WinDivertLayer::Flow): (`sniff` | `recv_only`)
+ * [`WinDivertLayer::Socket`](enum@WinDivertLayer::Socket): `recv_only`
+ * [`WinDivertLayer::Reflect`](enum@WinDivertLayer::Reflect): (`sniff` | `recv_only`)
 */
 pub struct WinDivertFlags(u64);
 

@@ -110,7 +110,7 @@ impl<L: layer::WinDivertLayerTrait> AsRef<WINDIVERT_ADDRESS> for WinDivertAddres
 }
 
 impl WinDivertAddress<layer::NetworkLayer> {
-    /// Create a new [`WinDivertData`] to inject new packets.
+    /// Create a new [`WinDivertAddress`] to inject new packets.
     /// SAFETY: The default value for address is zeroed memory, caller must fill with valid data before sending.
     pub unsafe fn new() -> Self {
         Self {
@@ -149,7 +149,7 @@ impl WinDivertAddress<layer::NetworkLayer> {
 }
 
 impl WinDivertAddress<layer::ForwardLayer> {
-    /// Create a new [`WinDivertData`] to inject new packets.
+    /// Create a new [`WinDivertAddress`] to inject new packets.
     /// SAFETY: The default value for address is zeroed memory, caller must fill with valid data before sending.
     pub unsafe fn new() -> Self {
         Self {
