@@ -1,6 +1,12 @@
-use crate::{address::WinDivertAddress, layer};
+use windivert_sys::{ChecksumFlags, WinDivertHelperCalcChecksums};
 
-use std::{borrow::Cow, fmt::Debug};
+use crate::{address::WinDivertAddress, layer, prelude::WinDivertError};
+
+use std::{
+    borrow::{BorrowMut, Cow},
+    ffi::c_void,
+    fmt::Debug,
+};
 
 /// Raw packet using an already allocated buffer
 #[derive(Debug, Clone)]
@@ -20,6 +26,25 @@ impl<'a> WinDivertPacket<'a, layer::NetworkLayer> {
             data: Cow::from(data),
         }
     }
+
+    /// Recalculate the checksums of the packet
+    /// This is a noop if the packet is not owned.
+    pub fn recalculate_checksums(&mut self, flags: ChecksumFlags) -> Result<(), WinDivertError> {
+        if let Cow::Owned(ref mut data) = self.data.borrow_mut() {
+            let res = unsafe {
+                WinDivertHelperCalcChecksums(
+                    data.as_mut_ptr() as *mut c_void,
+                    data.len() as u32,
+                    self.address.as_mut(),
+                    flags,
+                )
+            };
+            if !res.as_bool() {
+                return Err(WinDivertError::from(windows::core::Error::from_win32()));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<'a> WinDivertPacket<'a, layer::ForwardLayer> {
@@ -30,6 +55,25 @@ impl<'a> WinDivertPacket<'a, layer::ForwardLayer> {
             address: WinDivertAddress::<layer::ForwardLayer>::new(),
             data: Cow::from(data),
         }
+    }
+
+    /// Recalculate the checksums of the packet
+    /// This is a noop if the packet is not owned.
+    pub fn recalculate_checksums(&mut self, flags: ChecksumFlags) -> Result<(), WinDivertError> {
+        if let Cow::Owned(ref mut data) = self.data.borrow_mut() {
+            let res = unsafe {
+                WinDivertHelperCalcChecksums(
+                    data.as_mut_ptr() as *mut c_void,
+                    data.len() as u32,
+                    self.address.as_mut(),
+                    flags,
+                )
+            };
+            if !res.as_bool() {
+                return Err(WinDivertError::from(windows::core::Error::from_win32()));
+            }
+        }
+        Ok(())
     }
 }
 
