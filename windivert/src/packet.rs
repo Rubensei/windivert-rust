@@ -8,7 +8,7 @@ use std::{
     fmt::Debug,
 };
 
-/// Raw packet using an already allocated buffer
+/// Raw captured packet
 #[derive(Debug, Clone)]
 pub struct WinDivertPacket<'a, L: layer::WinDivertLayerTrait> {
     /// Address data
@@ -49,7 +49,7 @@ impl<'a> WinDivertPacket<'a, layer::NetworkLayer> {
 
 impl<'a> WinDivertPacket<'a, layer::ForwardLayer> {
     /// Create a new network forward packet from a raw buffer
-    /// SAFETY: `address` is zeroed`, user must fill it with correct data before sending.
+    /// SAFETY: `address` is zeroed, user must fill it with correct data before sending.
     pub unsafe fn new(data: Vec<u8>) -> Self {
         Self {
             address: WinDivertAddress::<layer::ForwardLayer>::new(),

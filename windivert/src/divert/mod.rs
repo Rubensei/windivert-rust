@@ -30,7 +30,7 @@ use windows::{
 #[non_exhaustive]
 pub struct WinDivert<L: layer::WinDivertLayerTrait> {
     handle: HANDLE,
-    tls_idx: u32,
+    _tls_idx: u32,
     _layer: PhantomData<L>,
 }
 
@@ -55,13 +55,13 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         } else {
             Ok(Self {
                 handle,
-                tls_idx: windivert_tls_idx,
+                _tls_idx: windivert_tls_idx,
                 _layer: PhantomData::<L>,
             })
         }
     }
 
-    pub(crate) fn get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
+    pub(crate) fn _get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
         let mut event = HANDLE::default();
         unsafe {
             event.0 = TlsGetValue(tls_idx) as isize;
@@ -150,22 +150,22 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 impl WinDivert<layer::NetworkLayer> {
     /// WinDivert constructor for network layer.
     pub fn network(
-        filter: &str,
+        filter: impl AsRef<str>,
         priority: i16,
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
-        Self::new(filter, WinDivertLayer::Network, priority, flags)
+        Self::new(filter.as_ref(), WinDivertLayer::Network, priority, flags)
     }
 }
 
 impl WinDivert<layer::ForwardLayer> {
     /// WinDivert constructor for forward layer.
     pub fn forward(
-        filter: &str,
+        filter: impl AsRef<str>,
         priority: i16,
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
-        Self::new(filter, WinDivertLayer::Forward, priority, flags)
+        Self::new(filter.as_ref(), WinDivertLayer::Forward, priority, flags)
     }
 }
 
@@ -188,12 +188,12 @@ impl WinDivert<layer::FlowLayer> {
 impl WinDivert<layer::SocketLayer> {
     /// WinDivert constructor for socket layer.
     pub fn socket(
-        filter: &str,
+        filter: impl AsRef<str>,
         priority: i16,
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
         Self::new(
-            filter,
+            filter.as_ref(),
             WinDivertLayer::Socket,
             priority,
             flags.set_recv_only(),
@@ -204,12 +204,12 @@ impl WinDivert<layer::SocketLayer> {
 impl WinDivert<layer::ReflectLayer> {
     /// WinDivert constructor for reflect layer.
     pub fn reflect(
-        filter: &str,
+        filter: impl AsRef<str>,
         priority: i16,
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
         Self::new(
-            filter,
+            filter.as_ref(),
             WinDivertLayer::Reflect,
             priority,
             flags.set_recv_only().set_sniff(),

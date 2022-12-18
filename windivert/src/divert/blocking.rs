@@ -7,7 +7,6 @@ use crate::prelude::*;
 use etherparse::{InternetSlice, SlicedPacket};
 use sys::address::WINDIVERT_ADDRESS;
 use windivert_sys as sys;
-use windows::Win32::System::IO::OVERLAPPED;
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
 
@@ -18,7 +17,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     ) -> Result<WinDivertPacket<'a, L>, WinDivertError> {
         let mut packet_length = 0;
         let mut addr = MaybeUninit::uninit();
-        let (buffer_ptr, buffer_len) = if let Some(buffer) = &buffer {
+        let (buffer_ptr, buffer_len) = if let Some(ref buffer) = buffer {
             (buffer.as_ptr(), buffer.len())
         } else {
             (std::ptr::null(), 0)
@@ -67,7 +66,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             (std::ptr::null(), 0)
         };
 
-        if unsafe {
+        let res = unsafe {
             sys::WinDivertRecvEx(
                 self.handle,
                 buffer_ptr as *mut c_void,
@@ -76,11 +75,11 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 0,
                 addr_buffer.as_mut_ptr(),
                 &mut addr_len,
-                std::ptr::null_mut() as *mut OVERLAPPED,
+                std::ptr::null_mut(),
             )
-        }
-        .as_bool()
-        {
+        };
+
+        if res.as_bool() {
             addr_buffer.truncate((addr_len / ADDR_SIZE as u32) as usize);
             Ok((
                 buffer.map(|buffer| &buffer[..packet_length as usize]),
