@@ -1,5 +1,4 @@
 mod blocking;
-// TODO: mod builder;
 
 use std::{
     ffi::{c_void, CString},
@@ -48,10 +47,8 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         let handle =
             unsafe { sys::WinDivertOpen(filter.as_ptr(), layer.into(), priority, flags.into()) };
         if handle.is_invalid() {
-            match WinDivertOpenError::try_from(std::io::Error::last_os_error()) {
-                Ok(err) => Err(WinDivertError::Open(err)),
-                Err(err) => Err(WinDivertError::OSError(err)),
-            }
+            let open_err = WinDivertOpenError::try_from(std::io::Error::last_os_error())?;
+            Err(open_err.into())
         } else {
             Ok(Self {
                 handle,
@@ -87,7 +84,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     pub fn set_param(&self, param: WinDivertParam, value: u64) -> Result<(), WinDivertError> {
         match param {
             WinDivertParam::VersionMajor | WinDivertParam::VersionMinor => {
-                Err(WinDivertError::Parameter)
+                Err(WinDivertError::Parameter(param, value))
             }
             _ => unsafe { sys::WinDivertSetParam(self.handle, param.into(), value) }
                 .ok()

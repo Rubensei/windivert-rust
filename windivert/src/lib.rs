@@ -1,5 +1,4 @@
-// TODO: #[deny(missing_docs)]
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 /*!
 Wrapper around [`windivert_sys`] ffi crate.
 */

@@ -1,71 +1,71 @@
-use std::{convert::TryFrom, error::Error};
-use std::{ffi::NulError, fmt::Display};
+use std::convert::TryFrom;
+use std::ffi::NulError;
 
-use windivert_sys::WinDivertValueError;
+use thiserror::Error;
+use windivert_sys::{WinDivertParam, WinDivertValueError};
 
 /**
 WinDivert error type.
 */
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum WinDivertError {
     /// Unexpected value in type conversions.
-    Value(WinDivertValueError),
+    #[error(transparent)]
+    Value(#[from] WinDivertValueError),
     /// Specific errors for divert constructor invocation.
-    Open(WinDivertOpenError),
+    #[error(transparent)]
+    Open(#[from] WinDivertOpenError),
     /// Specific errors for [`WinDivert::recv()`](fn@super::WinDivert::<L>::recv).
-    Recv(WinDivertRecvError),
+    #[error(transparent)]
+    Recv(#[from] WinDivertRecvError),
     /// Error for nul terminated filter strings.
-    NullError(NulError),
+    #[error(transparent)]
+    NullError(#[from] NulError),
+    /// Generic IO error.
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
     /// Generic OS error.
-    OSError(std::io::Error),
+    #[error(transparent)]
+    OSError(#[from] windows::core::Error),
     /// Error indicating that a wrong parameter was used in [`set_param()`](fn@crate::WinDivert::set_param)
-    Parameter,
+    #[error("Invalid parameter for set_param(). Parameter: {0:?}, Value: {1}")]
+    Parameter(WinDivertParam, u64),
 }
 
-impl From<WinDivertValueError> for WinDivertError {
-    fn from(error: WinDivertValueError) -> Self {
-        Self::Value(error)
-    }
-}
-
-impl From<WinDivertOpenError> for WinDivertError {
-    fn from(error: WinDivertOpenError) -> Self {
-        Self::Open(error)
-    }
-}
-
-impl From<WinDivertRecvError> for WinDivertError {
-    fn from(error: WinDivertRecvError) -> Self {
-        Self::Recv(error)
-    }
-}
-
-impl From<windows::core::Error> for WinDivertError {
-    fn from(error: windows::core::Error) -> Self {
-        Self::OSError(std::io::Error::from_raw_os_error(error.code().0))
-    }
-}
+// impl From<windows::core::Error> for WinDivertError {
+//     fn from(error: windows::core::Error) -> Self {
+//         Self::OSError(std::io::Error::from_raw_os_error(error.code().0))
+//     }
+// }
 
 /**
 Possible errors for [`WinDivertOpen()`](fn@windivert_sys::WinDivertOpen)
 */
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum WinDivertOpenError {
     /// The driver files WinDivert32.sys or WinDivert64.sys were not found.
+    #[error("SYS driver file not found")]
     MissingSYS, // 2
     /// The calling application does not have Administrator privileges.
+    #[error("Running without elevated access rights")]
     AccessDenied, // 5
     /// This indicates an invalid packet filter string, layer, priority, or flags.
+    #[error("Invalid parameter (filter string, layer, priority, or flags)")]
     InvalidParameter, // 87
     /// The WinDivert32.sys or WinDivert64.sys driver does not have a valid digital signature.
+    #[error("SYS driver file has invalid digital signature")]
     InvalidImageHash, // 577
     /// An incompatible version of the WinDivert driver is currently loaded.
+    #[error("An incompatible version of the WinDivert driver is currently loaded")]
     IncompatibleVersion, // 654
     /// The handle was opened with the WINDIVERT_FLAG_NO_INSTALL flag and the WinDivert driver is not already installed.
+    #[error("The handle was opened with the WINDIVERT_FLAG_NO_INSTALL flag and the WinDivert driver is not already installed")]
     MissingInstall, // 1060
     /// The WinDivert driver is blocked by security software or you are using a virtualization environment that does not support drivers.
+    #[error("WinDivert driver is blocked by security software or you are using a virtualization environment that does not support drivers")]
     DriverBlocked, // 1257
     /// This error occurs when the Base Filtering Engine service has been disabled.
+    #[error("Base Filtering Engine service has been disabled")]
     BaseFilteringEngineDisabled, // 1753
 }
 
@@ -112,11 +112,13 @@ impl TryFrom<std::io::Error> for WinDivertOpenError {
 /**
 Possible errors for [`WinDivertRecv()`](fn@windivert_sys::WinDivertRecv)
 */
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum WinDivertRecvError {
     /// The captured packet is larger than the provided buffer.
+    #[error("Captured packet is larger than the provided buffer")]
     InsufficientBuffer, // 122
     /// The handle has been shutdown and the packet queue is empty.
+    #[error("Not possible to get more data. Packet queue is empty and handle has been shutdown")]
     NoData, // 232
 }
 
@@ -147,23 +149,3 @@ impl TryFrom<std::io::Error> for WinDivertRecvError {
         }
     }
 }
-
-impl From<NulError> for WinDivertError {
-    fn from(e: NulError) -> Self {
-        WinDivertError::NullError(e)
-    }
-}
-
-impl Into<WinDivertError> for std::io::Error {
-    fn into(self) -> WinDivertError {
-        WinDivertError::OSError(self)
-    }
-}
-
-impl Display for WinDivertError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl Error for WinDivertError {}

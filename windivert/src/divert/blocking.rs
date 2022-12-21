@@ -41,11 +41,8 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                     .unwrap_or_default(),
             })
         } else {
-            let err = WinDivertRecvError::try_from(std::io::Error::last_os_error());
-            match err {
-                Ok(err) => Err(WinDivertError::Recv(err)),
-                Err(err) => Err(WinDivertError::OSError(err)),
-            }
+            let recv_err = WinDivertRecvError::try_from(std::io::Error::last_os_error())?;
+            Err(recv_err.into())
         }
     }
 
@@ -86,11 +83,8 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 addr_buffer,
             ))
         } else {
-            let err = WinDivertRecvError::try_from(std::io::Error::last_os_error());
-            match err {
-                Ok(err) => Err(WinDivertError::Recv(err)),
-                Err(err) => Err(WinDivertError::OSError(err)),
-            }
+            let recv_err = WinDivertRecvError::try_from(std::io::Error::last_os_error())?;
+            Err(recv_err.into())
         }
     }
 
@@ -127,7 +121,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::with_capacity(packet_count);
         packets.for_each(|packet: &'packets WinDivertPacket<'data, L>| {
             packet_buffer.extend(&packet.data[..]);
-            address_buffer.push(packet.address.as_ref().clone());
+            address_buffer.push(*packet.address.as_ref());
         });
 
         let res = unsafe {

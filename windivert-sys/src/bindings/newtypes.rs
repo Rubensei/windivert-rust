@@ -40,7 +40,7 @@ impl TryFrom<u32> for WinDivertLayer {
             2 => Ok(WinDivertLayer::Flow),
             3 => Ok(WinDivertLayer::Socket),
             4 => Ok(WinDivertLayer::Reflect),
-            _ => Err(WinDivertValueError::Layer),
+            _ => Err(WinDivertValueError::Layer(value)),
         }
     }
 }
@@ -122,7 +122,7 @@ impl TryFrom<u8> for WinDivertEvent {
             7 => Ok(Self::SocketClose),
             8 => Ok(Self::ReflectOpen),
             9 => Ok(Self::ReflectClose),
-            _ => Err(WinDivertValueError::Event),
+            _ => Err(WinDivertValueError::Event(value)),
         }
     }
 }
@@ -172,7 +172,7 @@ impl TryFrom<u32> for WinDivertShutdownMode {
             1 => Ok(WinDivertShutdownMode::Recv),
             2 => Ok(WinDivertShutdownMode::Send),
             3 => Ok(WinDivertShutdownMode::Both),
-            _ => Err(WinDivertValueError::Shutdown),
+            _ => Err(WinDivertValueError::Shutdown(value)),
         }
     }
 }
@@ -235,7 +235,7 @@ impl TryFrom<u32> for WinDivertParam {
             2 => Ok(WinDivertParam::QueueSize),
             3 => Ok(WinDivertParam::VersionMajor),
             4 => Ok(WinDivertParam::VersionMinor),
-            _ => Err(WinDivertValueError::Parameter),
+            _ => Err(WinDivertValueError::Parameter(value)),
         }
     }
 }
