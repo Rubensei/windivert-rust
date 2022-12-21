@@ -8,7 +8,8 @@ pub mod address;
 mod divert;
 /// WinDivert error types
 pub mod error;
-mod layer;
+/// Layer types used for typestate pattern
+pub mod layer;
 /// WinDivert packet types
 pub mod packet;
 
@@ -22,6 +23,7 @@ pub mod prelude {
 
     pub use crate::divert::*;
     pub use crate::error::*;
+    pub use crate::layer::*;
     pub use crate::packet::*;
 }
 

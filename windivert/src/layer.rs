@@ -1,11 +1,17 @@
 use windivert_sys::WinDivertLayer;
 
+/// Network type for typestate pattern.
 pub enum NetworkLayer {}
+/// Forward type for typestate pattern.
 pub enum ForwardLayer {}
+/// Flow type for typestate pattern.
 pub enum FlowLayer {}
+/// Socket type for typestate pattern.
 pub enum SocketLayer {}
+/// Reflect type for typestate pattern.
 pub enum ReflectLayer {}
 
+/// Trait for typestate pattern.
 pub trait WinDivertLayerTrait: sealed::Sealed {}
 
 impl WinDivertLayerTrait for NetworkLayer {}
