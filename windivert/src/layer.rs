@@ -26,9 +26,12 @@ impl WinDivertLayerTrait for ReflectLayer {}
 
 impl WinDivertLayerTrait for WinDivertLayer {}
 
+impl WinDivertLayerTrait for () {}
+
 mod sealed {
     pub trait Sealed {}
 
+    impl Sealed for () {}
     impl Sealed for super::NetworkLayer {}
     impl Sealed for super::ForwardLayer {}
     impl Sealed for super::FlowLayer {}
