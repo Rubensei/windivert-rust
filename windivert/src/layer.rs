@@ -17,7 +17,7 @@ pub enum SocketLayer {}
 pub enum ReflectLayer {}
 
 /// Trait for typestate pattern.
-pub trait WinDivertLayerTrait: sealed::Sealed + std::clone::Clone {}
+pub trait WinDivertLayerTrait: sealed::Sealed + std::fmt::Debug + std::clone::Clone {}
 
 impl WinDivertLayerTrait for NetworkLayer {}
 
