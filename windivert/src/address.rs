@@ -8,7 +8,7 @@ use windivert_sys::address::*;
 
 /// Newtype wrapper around [`WINDIVERT_ADDRESS`] using typestate to provide a safe interface.
 #[repr(transparent)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WinDivertAddress<L: layer::WinDivertLayerTrait> {
     data: WINDIVERT_ADDRESS,
     _layer: PhantomData<L>,
@@ -117,15 +117,6 @@ impl<L: layer::WinDivertLayerTrait> WinDivertAddress<L> {
     #[inline]
     pub fn set_udp_checksum(&mut self, value: bool) {
         self.data.set_udpchecksum(value)
-    }
-}
-
-impl<L: layer::WinDivertLayerTrait> Clone for WinDivertAddress<L> {
-    fn clone(&self) -> Self {
-        Self {
-            data: self.data.clone(),
-            _layer: self._layer.clone(),
-        }
     }
 }
 

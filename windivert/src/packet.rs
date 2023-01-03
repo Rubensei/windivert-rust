@@ -9,7 +9,7 @@ use std::{
 };
 
 /// Raw captured packet
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WinDivertPacket<'a, L: layer::WinDivertLayerTrait> {
     /// Address data
     pub address: WinDivertAddress<L>,
@@ -44,18 +44,6 @@ impl<'a> WinDivertPacket<'a, layer::NetworkLayer> {
             }
         }
         Ok(())
-    }
-}
-
-impl<'a, L> Clone for WinDivertPacket<'a, L>
-where
-    L: layer::WinDivertLayerTrait,
-{
-    fn clone(&self) -> Self {
-        Self {
-            address: self.address.clone(),
-            data: self.data.clone(),
-        }
     }
 }
 
