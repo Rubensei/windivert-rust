@@ -108,7 +108,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         Ok(injected_length)
     }
 
-    fn internal_send_ex<'data, 'packets, P>(&self, mut packets: P) -> Result<u32, WinDivertError>
+    fn internal_send_ex<'data, 'packets, P>(&self, packets: P) -> Result<u32, WinDivertError>
     where
         P: ExactSizeIterator<Item = &'packets WinDivertPacket<'data, L>>,
         'data: 'packets,
@@ -116,8 +116,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     {
         let packet_count = packets.len();
         let mut injected_length = 0;
-        let capacity = packets.by_ref().map(|p| p.data.len()).sum();
-        let mut packet_buffer: Vec<u8> = Vec::with_capacity(capacity);
+        let mut packet_buffer: Vec<u8> = Vec::new();
         let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::with_capacity(packet_count);
         packets.for_each(|packet: &'packets WinDivertPacket<'data, L>| {
             packet_buffer.extend(&packet.data[..]);
