@@ -15,9 +15,12 @@ pub enum WinDivertError {
     /// Specific errors for divert constructor invocation.
     #[error(transparent)]
     Open(#[from] WinDivertOpenError),
-    /// Specific errors for [`WinDivert::recv()`](fn@super::WinDivert::<L>::recv).
+    /// Specific errors for `WinDivert::recv()`.
     #[error(transparent)]
     Recv(#[from] WinDivertRecvError),
+    /// Specific errors for `WinDivert::send()`.
+    #[error(transparent)]
+    Semd(#[from] WinDivertSendError),
     /// Error for nul terminated filter strings.
     #[error(transparent)]
     NullError(#[from] NulError),
@@ -27,20 +30,15 @@ pub enum WinDivertError {
     /// Generic OS error.
     #[error(transparent)]
     OSError(#[from] windows::core::Error),
-    /// Error indicating that a wrong parameter was used in [`set_param()`](fn@crate::WinDivert::set_param)
+    /// Error indicating that a wrong parameter was used in `WinDivert::set_param()`
     #[error("Invalid parameter for set_param(). Parameter: {0:?}, Value: {1}")]
     Parameter(WinDivertParam, u64),
+    /// Timeout error.
+    #[error("Wait operation timed out")]
+    Timeout,
 }
 
-// impl From<windows::core::Error> for WinDivertError {
-//     fn from(error: windows::core::Error) -> Self {
-//         Self::OSError(std::io::Error::from_raw_os_error(error.code().0))
-//     }
-// }
-
-/**
-Possible errors for [`WinDivertOpen()`](fn@windivert_sys::WinDivertOpen)
-*/
+/// Possible errors for [`WinDivertOpen()`](fn@windivert_sys::WinDivertOpen)
 #[derive(Debug, Error)]
 pub enum WinDivertOpenError {
     /// The driver files WinDivert32.sys or WinDivert64.sys were not found.
@@ -109,9 +107,7 @@ impl TryFrom<std::io::Error> for WinDivertOpenError {
     }
 }
 
-/**
-Possible errors for [`WinDivertRecv()`](fn@windivert_sys::WinDivertRecv)
-*/
+/// Possible errors for [`WinDivertRecv()`](fn@windivert_sys::WinDivertRecv)
 #[derive(Debug, Error)]
 pub enum WinDivertRecvError {
     /// The captured packet is larger than the provided buffer.
@@ -148,4 +144,12 @@ impl TryFrom<std::io::Error> for WinDivertRecvError {
             Err(error)
         }
     }
+}
+
+/// Possible errors for `WinDivert::send()` methods.
+#[derive(Debug, Error)]
+pub enum WinDivertSendError {
+    /// WinDivert can't send more than [`WINDIVERT_BATCH_MAX`](windivert_sys::WINDIVERT_BATCH_MAX) packets at once.
+    #[error("Provided packet slice is too large")]
+    TooManyPackets,
 }
