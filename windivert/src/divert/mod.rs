@@ -339,6 +339,9 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
 /// Utility methods for WinDivert.
 impl WinDivert<()> {
+    /// Maximum number of packets that can be captured/sent in a single batched operation
+    pub const MAX_BATCH: u8 = windivert_sys::WINDIVERT_BATCH_MAX as u8;
+
     /// Method that tries to uninstall WinDivert driver.
     pub fn uninstall() -> Result<(), WinDivertError> {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();

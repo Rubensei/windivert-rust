@@ -25,7 +25,7 @@ tracing = { version = "0.1", optional = true }
 windivert-sys = { version = "0.9.1-alpha.1", path = "../windivert-sys" }
 
 [dependencies.windows]
-version = "0.43.0"
+version = "0.44"
 features = [
 	"Devices_Custom",
 	"Win32_Devices",

@@ -11,9 +11,9 @@ categories = ["external-ffi-bindings"]
 readme = "../README.md"
 license = "LGPL-3.0-or-later"
 edition = "2021"
+rust-version = "1.64"
 links = "WinDivert"
 build = "build/main.rs"
-rust-version = "1.64"
 
 [lib]
 name = "windivert_sys"
@@ -26,7 +26,7 @@ vendored = []
 thiserror = "1"
 
 [dependencies.windows]
-version = "0.43.0"
+version = "0.44"
 features = [
     "Win32_Foundation",
     "Win32_System_IO",

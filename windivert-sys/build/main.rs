@@ -31,6 +31,7 @@ fn main() {
                 }
             }
         } else if cfg!(feature = "vendored") {
+            println!("cargo:rerun-if-changed=wrapper.h");
             println!("cargo:rustc-link-search=native={out_dir}");
             println!("cargo:warning=Environment variable WINDIVERT_PATH not found, building WinDivert from source.");
             build_windivert();

@@ -7,7 +7,7 @@ pub fn compile(build: Build) {
     let compiler = build.get_compiler();
 
     let out_dir = env::var("OUT_DIR").unwrap();
-    println!("cargo:rustc-link-search={}", &out_dir);
+    println!("cargo:rustc-link-search={out_dir}");
 
     let mut cmd = compiler.to_command();
 
@@ -21,7 +21,7 @@ pub fn compile(build: Build) {
         "x86_64" => "x64",
         _ => panic!("Unsupported target architecture!"),
     };
-    cmd.arg(format!("/MACHINE:{}", arch));
+    cmd.arg(format!("/MACHINE:{arch}"));
 
     cmd.arg(format!(r#"/PDB:{out_dir}\WinDivertDll.pdb"#));
     cmd.arg(format!(r#"/OUT:{out_dir}\WinDivert.dll"#));
