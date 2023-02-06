@@ -8,6 +8,7 @@ use cc::Build;
 fn main() {
     if std::env::var("DOCS_RS").is_err() {
         let out_dir = env::var("OUT_DIR").unwrap();
+        println!("cargo:rerun-if-changed=wrapper.h");
         println!("cargo:rerun-if-env-changed=WINDIVERT_PATH");
         println!("cargo:rerun-if-env-changed=WINDIVERT_DLL_OUTPUT");
         println!("cargo:rerun-if-env-changed={out_dir}/WinDivert.dll");
