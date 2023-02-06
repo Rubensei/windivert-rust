@@ -252,8 +252,6 @@ impl From<WinDivertParam> for u32 {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
-#[repr(transparent)]
 /**
 Flag type required by [`WinDivertOpen()`](fn@super::WinDivertOpen). It follows a builder like style.
 
@@ -271,85 +269,117 @@ Some layers have mandatory flags:
  * [`WinDivertLayer::Socket`](type@WinDivertLayer::Socket): `recv_only`
  * [`WinDivertLayer::Reflect`](type@WinDivertLayer::Reflect): (`sniff` | `recv_only`)
 */
+#[derive(Debug, Default, Copy, Clone)]
+#[repr(transparent)]
 pub struct WinDivertFlags(u64);
 
 /// WinDivertFlags builder methods.
 impl WinDivertFlags {
     /// Creates a new flag field with all options unset.
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new() -> Self {
+        Self(0)
     }
 
     /// Sets `sniff` flag.
-    pub fn set_sniff(mut self) -> Self {
+    pub const fn set_sniff(mut self) -> Self {
         self.0 |= 0x0001;
         self
     }
 
     /// Unsets `sniff` flag.
-    pub fn unset_sniff(mut self) -> Self {
+    pub const fn unset_sniff(mut self) -> Self {
         self.0 &= !0x001;
         self
     }
 
+    /// Sets `sniff` flag to `value`.
+    pub fn set_sniff_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0001) | ((value as u64) << 0);
+    }
+
     /// Sets `drop` flag.
-    pub fn set_drop(mut self) -> Self {
+    pub const fn set_drop(mut self) -> Self {
         self.0 |= 0x0002;
         self
     }
 
     /// Unsets `drop` flag.
-    pub fn unset_drop(mut self) -> Self {
+    pub const fn unset_drop(mut self) -> Self {
         self.0 &= !0x0002;
         self
     }
 
+    /// Sets `drop` flag to `value`.
+    pub fn set_drop_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0002) | ((value as u64) << 1);
+    }
+
     /// Sets `recv_only` flag
-    pub fn set_recv_only(mut self) -> Self {
+    pub const fn set_recv_only(mut self) -> Self {
         self.0 |= 0x0004;
         self
     }
 
     /// Unsets `recv_only` flag
-    pub fn unset_recv_only(mut self) -> Self {
+    pub const fn unset_recv_only(mut self) -> Self {
         self.0 &= !0x0004;
         self
     }
 
+    /// Sets `recv_only` flag to `value`.
+    pub fn set_recv_only_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0004) | ((value as u64) << 2);
+    }
+
     /// Sets `send_only` flag.
-    pub fn set_send_only(mut self) -> Self {
+    pub const fn set_send_only(mut self) -> Self {
         self.0 |= 0x0008;
         self
     }
 
     /// Unsets `send_only` flag.
-    pub fn unset_send_only(mut self) -> Self {
+    pub const fn unset_send_only(mut self) -> Self {
         self.0 &= !0x0008;
         self
     }
 
+    /// Sets `send_only` flag to `value`.
+    pub fn set_send_only_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0008) | ((value as u64) << 3);
+    }
+
     /// Sets `no_installs` flag.
-    pub fn set_no_installs(mut self) -> Self {
+    pub const fn set_no_installs(mut self) -> Self {
         self.0 |= 0x0010;
         self
     }
 
     /// Unsets `no_installs` flag.
-    pub fn unset_no_installs(mut self) -> Self {
+    pub const fn unset_no_installs(mut self) -> Self {
         self.0 &= !0x0010;
         self
     }
 
+    /// Sets `no_installs` flag to `value`.
+    pub fn set_no_installs_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0010) | ((value as u64) << 4);
+    }
+
     /// Sets `fragments` flag.
-    pub fn set_fragments(mut self) -> Self {
+    pub const fn set_fragments(mut self) -> Self {
         self.0 |= 0x0020;
         self
     }
 
     /// Unsets `fragments` flag.
-    pub fn unset_fragments(mut self) -> Self {
+    pub const fn unset_fragments(mut self) -> Self {
         self.0 &= !0x0020;
         self
+    }
+
+    /// Sets `fragments` flag to `value`.
+    pub fn set_fragments_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0020) | ((value as u64) << 5);
     }
 }
 
@@ -377,68 +407,93 @@ pub struct ChecksumFlags(u64);
 
 impl ChecksumFlags {
     /// Creates a new flag field with default zero value.
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new() -> Self {
+        Self(0)
     }
 
     /// Sets `no_ip` flag
-    pub fn set_no_ip(mut self) -> Self {
+    pub const fn set_no_ip(mut self) -> Self {
         self.0 |= 0x0001;
         self
     }
 
     /// Unsets `no_ip` flag
-    pub fn unset_no_ip(mut self) -> Self {
-        self.0 &= 0xFFFE;
+    pub const fn unset_no_ip(mut self) -> Self {
+        self.0 &= !0x0001;
         self
     }
 
+    /// Sets `no_ip` flag to `value`.
+    pub fn set_no_ip_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0001) | ((value as u64) << 0);
+    }
+
     /// Sets `no_icmp` flag
-    pub fn set_no_icmp(mut self) -> Self {
-        self.0 &= 0x0002;
+    pub const fn set_no_icmp(mut self) -> Self {
+        self.0 |= 0x0002;
         self
     }
 
     /// Unsets `no_icmp` flag
-    pub fn unset_no_icmp(mut self) -> Self {
-        self.0 ^= 0xFFFD;
+    pub const fn unset_no_icmp(mut self) -> Self {
+        self.0 &= !0x0002;
         self
     }
 
+    /// Sets `no_icmp` flag to `value`.
+    pub fn set_no_icmp_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0002) | ((value as u64) << 1);
+    }
+
     /// Sets `no_icmpv6` flag
-    pub fn set_no_icmpv6(mut self) -> Self {
-        self.0 &= 0x0004;
+    pub const fn set_no_icmpv6(mut self) -> Self {
+        self.0 |= 0x0004;
         self
     }
 
     /// Unsets `no_icmpv6` flag
-    pub fn unset_no_icmpv6(mut self) -> Self {
-        self.0 ^= 0xFFFB;
+    pub const fn unset_no_icmpv6(mut self) -> Self {
+        self.0 &= !0x0004;
         self
     }
 
+    /// Sets `no_icmpv6` flag to `value`.
+    pub fn set_no_icmpv6_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0004) | ((value as u64) << 2);
+    }
+
     /// Sets `no_tcp` flag
-    pub fn set_no_tcp(mut self) -> Self {
-        self.0 &= 0x0008;
+    pub const fn set_no_tcp(mut self) -> Self {
+        self.0 |= 0x0008;
         self
     }
 
     /// Unsets `no_tcp` flag
-    pub fn unset_no_tcp(mut self) -> Self {
-        self.0 ^= 0xFFF7;
+    pub const fn unset_no_tcp(mut self) -> Self {
+        self.0 &= !0x0008;
         self
     }
 
+    /// Sets `no_tcp` flag to `value`.
+    pub fn set_no_tcp_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0008) | ((value as u64) << 3);
+    }
+
     /// Sets `no_udp` flag
-    pub fn set_no_udp(mut self) -> Self {
-        self.0 &= 0x0010;
+    pub const fn set_no_udp(mut self) -> Self {
+        self.0 |= 0x0010;
         self
     }
 
     /// Unsets `no_udp` flag
-    pub fn unset_no_udp(mut self) -> Self {
-        self.0 ^= 0xFFEF;
+    pub const fn unset_no_udp(mut self) -> Self {
+        self.0 &= !0x0010;
         self
+    }
+
+    /// Sets `no_udp` flag to `value`.
+    pub fn set_no_udp_value(&mut self, value: bool) {
+        self.0 = (self.0 & !0x0010) | ((value as u64) << 4);
     }
 }
 
