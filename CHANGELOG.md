@@ -19,6 +19,8 @@ and this project adheres to
 
 ## [Unreleased-sys]
 
+## [sys-0.9.1] - 2023-02-06
+
 ### Fixed
 
 - Fix logic error in bitflag methods
@@ -57,7 +59,8 @@ and this project adheres to
 - Initial tagged release
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.4...HEAD
-[unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.0...HEAD
+[unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.1...HEAD
+[sys-0.9.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.0...windivert-sys-0.9.1
 [0.5.4]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.3...windivert-0.5.4
 [0.5.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.1...windivert-0.5.3
 [sys-0.9.0]: https://github.com/Rubensei/windivert-rust/releases/tag/windivert-sys-0.9.0
