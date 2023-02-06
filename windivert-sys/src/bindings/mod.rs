@@ -100,7 +100,7 @@ extern "C" {
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_shutdown)
     pub fn WinDivertShutdown(handle: HANDLE, how: WinDivertShutdownMode) -> BOOL;
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_shutdown)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_close)
     pub fn WinDivertClose(handle: HANDLE) -> BOOL;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_set_param)
@@ -128,14 +128,14 @@ extern "C" {
         pNextLen: *mut u32,
     ) -> BOOL;
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_parse_packet)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_hash_packet)
     pub fn WinDivertHelperHashPacket(
         pPacket: *const ::std::os::raw::c_void,
         packetLen: u32,
         seed: u64,
     ) -> u64;
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_parse_packet)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_parse_ipv4_address)
     pub fn WinDivertHelperParseIPv4Address(
         addrStr: *const ::std::os::raw::c_char,
         pAddr: *mut u32,
@@ -147,7 +147,7 @@ extern "C" {
         pAddr: *mut u32,
     ) -> BOOL;
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_parse_ipv6_address)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_format_ipv4_address)
     pub fn WinDivertHelperFormatIPv4Address(
         addr: u32,
         buffer: *mut ::std::os::raw::c_char,
@@ -175,7 +175,7 @@ extern "C" {
         packetLen: u32,
     ) -> BOOL;
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_dec_ttl)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_compile_filter)
     pub fn WinDivertHelperCompileFilter(
         filter: *const ::std::os::raw::c_char,
         layer: WinDivertLayer,
@@ -204,30 +204,30 @@ extern "C" {
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
     pub fn WinDivertHelperNtohs(x: u16) -> u16;
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_hton)
     pub fn WinDivertHelperHtons(x: u16) -> u16;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
     pub fn WinDivertHelperNtohl(x: u32) -> u32;
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_hton)
     pub fn WinDivertHelperHtonl(x: u32) -> u32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
     pub fn WinDivertHelperNtohll(x: u64) -> u64;
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_hton)
     pub fn WinDivertHelperHtonll(x: u64) -> u64;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
     pub fn WinDivertHelperNtohIPv6Address(inAddr: *const u32, outAddr: *mut u32);
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_hton)
     pub fn WinDivertHelperHtonIPv6Address(inAddr: *const u32, outAddr: *mut u32);
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
     pub fn WinDivertHelperNtohIpv6Address(inAddr: *const u32, outAddr: *mut u32);
 
-    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
+    /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_hton)
     pub fn WinDivertHelperHtonIpv6Address(inAddr: *const u32, outAddr: *mut u32);
 }
