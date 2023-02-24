@@ -19,6 +19,10 @@ and this project adheres to
 
 ## [Unreleased-sys]
 
+### Added
+
+- Add `WinDivertFlags::<layer>_default` methods.
+
 ## [sys-0.9.1] - 2023-02-06
 
 ### Fixed

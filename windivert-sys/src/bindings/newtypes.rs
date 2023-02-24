@@ -275,111 +275,155 @@ pub struct WinDivertFlags(u64);
 
 /// WinDivertFlags builder methods.
 impl WinDivertFlags {
+    pub(crate) const SNIFF: u64 = 0x0001;
+    pub(crate) const DROP: u64 = 0x0002;
+    pub(crate) const RECV_ONLY: u64 = 0x0004;
+    pub(crate) const SEND_ONLY: u64 = 0x0008;
+    pub(crate) const NO_INSTALLS: u64 = 0x0010;
+    pub(crate) const FRAGMENTS: u64 = 0x0020;
+
     /// Creates a new flag field with all options unset.
+    #[inline]
     pub const fn new() -> Self {
         Self(0)
     }
 
+    /// Create a flag field with default values for [`WinDivertLayer::Flow`](type@WinDivertLayer::Flow).
+    #[inline]
+    pub const fn flow_default() -> Self {
+        Self(Self::SNIFF | Self::RECV_ONLY)
+    }
+
+    /// Create a flag field with default values for [`WinDivertLayer::Socket`](type@WinDivertLayer::Socket).
+    #[inline]
+    pub const fn socket_default() -> Self {
+        Self(Self::RECV_ONLY)
+    }
+
+    /// Create a flag field with default values for [`WinDivertLayer::Reflect`](type@WinDivertLayer::Reflect).
+    #[inline]
+    pub const fn reflect_default() -> Self {
+        Self(Self::SNIFF | Self::RECV_ONLY)
+    }
+
     /// Sets `sniff` flag.
+    #[inline]
     pub const fn set_sniff(mut self) -> Self {
-        self.0 |= 0x0001;
+        self.0 |= Self::SNIFF;
         self
     }
 
     /// Unsets `sniff` flag.
+    #[inline]
     pub const fn unset_sniff(mut self) -> Self {
-        self.0 &= !0x001;
+        self.0 &= !Self::SNIFF;
         self
     }
 
     /// Sets `sniff` flag to `value`.
+    #[inline]
     pub fn set_sniff_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0001) | ((value as u64) << 0);
+        self.0 = (self.0 & !Self::SNIFF) | ((value as u64) << 0);
     }
 
     /// Sets `drop` flag.
+    #[inline]
     pub const fn set_drop(mut self) -> Self {
-        self.0 |= 0x0002;
+        self.0 |= Self::DROP;
         self
     }
 
     /// Unsets `drop` flag.
+    #[inline]
     pub const fn unset_drop(mut self) -> Self {
-        self.0 &= !0x0002;
+        self.0 &= !Self::DROP;
         self
     }
 
     /// Sets `drop` flag to `value`.
+    #[inline]
     pub fn set_drop_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0002) | ((value as u64) << 1);
+        self.0 = (self.0 & !Self::DROP) | ((value as u64) << 1);
     }
 
     /// Sets `recv_only` flag
+    #[inline]
     pub const fn set_recv_only(mut self) -> Self {
-        self.0 |= 0x0004;
+        self.0 |= Self::RECV_ONLY;
         self
     }
 
     /// Unsets `recv_only` flag
+    #[inline]
     pub const fn unset_recv_only(mut self) -> Self {
-        self.0 &= !0x0004;
+        self.0 &= !Self::RECV_ONLY;
         self
     }
 
     /// Sets `recv_only` flag to `value`.
+    #[inline]
     pub fn set_recv_only_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0004) | ((value as u64) << 2);
+        self.0 = (self.0 & !Self::RECV_ONLY) | ((value as u64) << 2);
     }
 
     /// Sets `send_only` flag.
+    #[inline]
     pub const fn set_send_only(mut self) -> Self {
-        self.0 |= 0x0008;
+        self.0 |= Self::SEND_ONLY;
         self
     }
 
     /// Unsets `send_only` flag.
+    #[inline]
     pub const fn unset_send_only(mut self) -> Self {
-        self.0 &= !0x0008;
+        self.0 &= !Self::SEND_ONLY;
         self
     }
 
     /// Sets `send_only` flag to `value`.
+    #[inline]
     pub fn set_send_only_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0008) | ((value as u64) << 3);
+        self.0 = (self.0 & !Self::SEND_ONLY) | ((value as u64) << 3);
     }
 
     /// Sets `no_installs` flag.
+    #[inline]
     pub const fn set_no_installs(mut self) -> Self {
-        self.0 |= 0x0010;
+        self.0 |= Self::NO_INSTALLS;
         self
     }
 
     /// Unsets `no_installs` flag.
+    #[inline]
     pub const fn unset_no_installs(mut self) -> Self {
-        self.0 &= !0x0010;
+        self.0 &= !Self::NO_INSTALLS;
         self
     }
 
     /// Sets `no_installs` flag to `value`.
+    #[inline]
     pub fn set_no_installs_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0010) | ((value as u64) << 4);
+        self.0 = (self.0 & !Self::NO_INSTALLS) | ((value as u64) << 4);
     }
 
     /// Sets `fragments` flag.
+    #[inline]
     pub const fn set_fragments(mut self) -> Self {
-        self.0 |= 0x0020;
+        self.0 |= Self::FRAGMENTS;
         self
     }
 
     /// Unsets `fragments` flag.
+    #[inline]
     pub const fn unset_fragments(mut self) -> Self {
-        self.0 &= !0x0020;
+        self.0 &= !Self::FRAGMENTS;
         self
     }
 
     /// Sets `fragments` flag to `value`.
+    #[inline]
     pub fn set_fragments_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0020) | ((value as u64) << 5);
+        self.0 = (self.0 & !Self::FRAGMENTS) | ((value as u64) << 5);
     }
 }
 
@@ -406,99 +450,283 @@ The different flag values are:
 pub struct ChecksumFlags(u64);
 
 impl ChecksumFlags {
+    pub(crate) const NO_IP: u64 = 0x0001;
+    pub(crate) const NO_ICMP: u64 = 0x0002;
+    pub(crate) const NO_ICMPV6: u64 = 0x0004;
+    pub(crate) const NO_TCP: u64 = 0x0008;
+    pub(crate) const NO_UDP: u64 = 0x0010;
+
     /// Creates a new flag field with default zero value.
+    #[inline]
     pub const fn new() -> Self {
         Self(0)
     }
 
     /// Sets `no_ip` flag
+    #[inline]
     pub const fn set_no_ip(mut self) -> Self {
-        self.0 |= 0x0001;
+        self.0 |= Self::NO_IP;
         self
     }
 
     /// Unsets `no_ip` flag
+    #[inline]
     pub const fn unset_no_ip(mut self) -> Self {
-        self.0 &= !0x0001;
+        self.0 &= !Self::NO_IP;
         self
     }
 
     /// Sets `no_ip` flag to `value`.
+    #[inline]
     pub fn set_no_ip_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0001) | ((value as u64) << 0);
+        self.0 = (self.0 & !Self::NO_IP) | ((value as u64) << 0);
     }
 
     /// Sets `no_icmp` flag
+    #[inline]
     pub const fn set_no_icmp(mut self) -> Self {
-        self.0 |= 0x0002;
+        self.0 |= Self::NO_ICMP;
         self
     }
 
     /// Unsets `no_icmp` flag
+    #[inline]
     pub const fn unset_no_icmp(mut self) -> Self {
-        self.0 &= !0x0002;
+        self.0 &= !Self::NO_ICMP;
         self
     }
 
     /// Sets `no_icmp` flag to `value`.
+    #[inline]
     pub fn set_no_icmp_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0002) | ((value as u64) << 1);
+        self.0 = (self.0 & !Self::NO_ICMP) | ((value as u64) << 1);
     }
 
     /// Sets `no_icmpv6` flag
+    #[inline]
     pub const fn set_no_icmpv6(mut self) -> Self {
-        self.0 |= 0x0004;
+        self.0 |= Self::NO_ICMPV6;
         self
     }
 
     /// Unsets `no_icmpv6` flag
+    #[inline]
     pub const fn unset_no_icmpv6(mut self) -> Self {
-        self.0 &= !0x0004;
+        self.0 &= !Self::NO_ICMPV6;
         self
     }
 
     /// Sets `no_icmpv6` flag to `value`.
+    #[inline]
     pub fn set_no_icmpv6_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0004) | ((value as u64) << 2);
+        self.0 = (self.0 & !Self::NO_ICMPV6) | ((value as u64) << 2);
     }
 
     /// Sets `no_tcp` flag
+    #[inline]
     pub const fn set_no_tcp(mut self) -> Self {
-        self.0 |= 0x0008;
+        self.0 |= Self::NO_TCP;
         self
     }
 
     /// Unsets `no_tcp` flag
+    #[inline]
     pub const fn unset_no_tcp(mut self) -> Self {
-        self.0 &= !0x0008;
+        self.0 &= !Self::NO_TCP;
         self
     }
 
     /// Sets `no_tcp` flag to `value`.
+    #[inline]
     pub fn set_no_tcp_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0008) | ((value as u64) << 3);
+        self.0 = (self.0 & !Self::NO_TCP) | ((value as u64) << 3);
     }
 
     /// Sets `no_udp` flag
+    #[inline]
     pub const fn set_no_udp(mut self) -> Self {
-        self.0 |= 0x0010;
+        self.0 |= Self::NO_UDP;
         self
     }
 
     /// Unsets `no_udp` flag
+    #[inline]
     pub const fn unset_no_udp(mut self) -> Self {
-        self.0 &= !0x0010;
+        self.0 &= !Self::NO_UDP;
         self
     }
 
     /// Sets `no_udp` flag to `value`.
+    #[inline]
     pub fn set_no_udp_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0010) | ((value as u64) << 4);
+        self.0 = (self.0 & !Self::NO_UDP) | ((value as u64) << 4);
     }
 }
 
 impl From<ChecksumFlags> for u64 {
     fn from(flags: ChecksumFlags) -> Self {
         flags.0
+    }
+}
+
+#[cfg(test)]
+mod test {
+    mod divert_flags {
+        use super::super::*;
+
+        macro_rules! test_flag {
+            ($flag:ident, $function_set:ident, $function_unset:ident, $function_set_value:ident) => {
+                #[test]
+                fn $function_set() {
+                    let flags = WinDivertFlags(
+                        (WinDivertFlags::SNIFF
+                            | WinDivertFlags::DROP
+                            | WinDivertFlags::RECV_ONLY
+                            | WinDivertFlags::SEND_ONLY
+                            | WinDivertFlags::NO_INSTALLS
+                            | WinDivertFlags::FRAGMENTS)
+                            ^ WinDivertFlags::$flag,
+                    );
+                    assert_eq!(0, flags.0 & WinDivertFlags::$flag);
+                    let new_flags = flags.$function_set();
+                    assert_eq!(WinDivertFlags::$flag, new_flags.0 & WinDivertFlags::$flag);
+                    assert_eq!(flags.0, new_flags.0 & !WinDivertFlags::$flag);
+                }
+
+                #[test]
+                fn $function_unset() {
+                    let flags = WinDivertFlags(
+                        WinDivertFlags::SNIFF
+                            | WinDivertFlags::DROP
+                            | WinDivertFlags::RECV_ONLY
+                            | WinDivertFlags::SEND_ONLY
+                            | WinDivertFlags::NO_INSTALLS
+                            | WinDivertFlags::FRAGMENTS,
+                    );
+                    assert_eq!(WinDivertFlags::$flag, flags.0 & WinDivertFlags::$flag);
+                    let new_flags = flags.$function_unset();
+                    assert_eq!(0, new_flags.0 & WinDivertFlags::$flag);
+                    assert_eq!(flags.0, new_flags.0 | WinDivertFlags::$flag);
+                }
+
+                #[test]
+                fn $function_set_value() {
+                    let flags = WinDivertFlags(
+                        WinDivertFlags::SNIFF
+                            | WinDivertFlags::DROP
+                            | WinDivertFlags::RECV_ONLY
+                            | WinDivertFlags::SEND_ONLY
+                            | WinDivertFlags::NO_INSTALLS
+                            | WinDivertFlags::FRAGMENTS,
+                    );
+                    let mut new_flags = flags;
+                    assert_eq!(WinDivertFlags::$flag, flags.0 & WinDivertFlags::$flag);
+                    new_flags.$function_set_value(false);
+                    assert_eq!(0, new_flags.0 & WinDivertFlags::$flag);
+                    assert_eq!(flags.0, new_flags.0 | WinDivertFlags::$flag);
+                    let flags = new_flags;
+                    new_flags.$function_set_value(true);
+                    assert_eq!(WinDivertFlags::$flag, new_flags.0 & WinDivertFlags::$flag);
+                    assert_eq!(flags.0, new_flags.0 & !WinDivertFlags::$flag);
+                }
+            };
+        }
+
+        test_flag!(SNIFF, set_sniff, unset_sniff, set_sniff_value);
+        test_flag!(DROP, set_drop, unset_drop, set_drop_value);
+        test_flag!(
+            RECV_ONLY,
+            set_recv_only,
+            unset_recv_only,
+            set_recv_only_value
+        );
+        test_flag!(
+            SEND_ONLY,
+            set_send_only,
+            unset_send_only,
+            set_send_only_value
+        );
+        test_flag!(
+            NO_INSTALLS,
+            set_no_installs,
+            unset_no_installs,
+            set_no_installs_value
+        );
+        test_flag!(
+            FRAGMENTS,
+            set_fragments,
+            unset_fragments,
+            set_fragments_value
+        );
+    }
+
+    mod checksum {
+        use super::super::*;
+
+        macro_rules! test_flag {
+            ($flag:ident, $function_set:ident, $function_unset:ident, $function_set_value:ident) => {
+                #[test]
+                fn $function_set() {
+                    let flags = ChecksumFlags(
+                        (ChecksumFlags::NO_IP
+                            | ChecksumFlags::NO_ICMP
+                            | ChecksumFlags::NO_ICMPV6
+                            | ChecksumFlags::NO_TCP
+                            | ChecksumFlags::NO_UDP)
+                            ^ ChecksumFlags::$flag,
+                    );
+                    assert_eq!(0, flags.0 & ChecksumFlags::$flag);
+                    let new_flags = flags.$function_set();
+                    assert_eq!(ChecksumFlags::$flag, new_flags.0 & ChecksumFlags::$flag);
+                    assert_eq!(flags.0, new_flags.0 & !ChecksumFlags::$flag);
+                }
+
+                #[test]
+                fn $function_unset() {
+                    let flags = ChecksumFlags(
+                        ChecksumFlags::NO_IP
+                            | ChecksumFlags::NO_ICMP
+                            | ChecksumFlags::NO_ICMPV6
+                            | ChecksumFlags::NO_TCP
+                            | ChecksumFlags::NO_UDP,
+                    );
+                    assert_eq!(ChecksumFlags::$flag, flags.0 & ChecksumFlags::$flag);
+                    let new_flags = flags.$function_unset();
+                    assert_eq!(0, new_flags.0 & ChecksumFlags::$flag);
+                    assert_eq!(flags.0, new_flags.0 | ChecksumFlags::$flag);
+                }
+
+                #[test]
+                fn $function_set_value() {
+                    let flags = ChecksumFlags(
+                        ChecksumFlags::NO_IP
+                            | ChecksumFlags::NO_ICMP
+                            | ChecksumFlags::NO_ICMPV6
+                            | ChecksumFlags::NO_TCP
+                            | ChecksumFlags::NO_UDP,
+                    );
+                    let mut new_flags = flags;
+                    assert_eq!(ChecksumFlags::$flag, flags.0 & ChecksumFlags::$flag);
+                    new_flags.$function_set_value(false);
+                    assert_eq!(0, new_flags.0 & ChecksumFlags::$flag);
+                    assert_eq!(flags.0, new_flags.0 | ChecksumFlags::$flag);
+                    let flags = new_flags;
+                    new_flags.$function_set_value(true);
+                    assert_eq!(ChecksumFlags::$flag, new_flags.0 & ChecksumFlags::$flag);
+                    assert_eq!(flags.0, new_flags.0 & !ChecksumFlags::$flag);
+                }
+            };
+        }
+
+        test_flag!(NO_IP, set_no_ip, unset_no_ip, set_no_ip_value);
+        test_flag!(NO_ICMP, set_no_icmp, unset_no_icmp, set_no_icmp_value);
+        test_flag!(
+            NO_ICMPV6,
+            set_no_icmpv6,
+            unset_no_icmpv6,
+            set_no_icmpv6_value
+        );
+        test_flag!(NO_TCP, set_no_tcp, unset_no_tcp, set_no_tcp_value);
+        test_flag!(NO_UDP, set_no_udp, unset_no_udp, set_no_udp_value);
     }
 }

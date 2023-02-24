@@ -22,7 +22,7 @@ vendored = ["windivert-sys/vendored"]
 etherparse = "0.13"
 thiserror = "1"
 tracing = { version = "0.1", optional = true }
-windivert-sys = { version = "0.9.1", path = "../windivert-sys" }
+windivert-sys = { version = "0.9.2-alpha.1", path = "../windivert-sys" }
 
 [dependencies.windows]
 version = "0.44"
