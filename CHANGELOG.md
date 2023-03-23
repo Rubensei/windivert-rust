@@ -18,7 +18,7 @@ and this project adheres to
 
 ## [Unreleased-sys]
 
-## [0.5.5] - 2023-03-233
+## [0.5.5] - 2023-03-23
 
 ### Fixed
 
