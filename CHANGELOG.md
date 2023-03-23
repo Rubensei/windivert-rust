@@ -11,7 +11,6 @@ and this project adheres to
 ### Added
 
 - Add `wait` method variants to windivert
-- Add `WinDivert::<()>::MAX_BATCH`
 
 ### Changed
 
@@ -24,6 +23,10 @@ and this project adheres to
 ### Fixed
 
 - Fix `close` errors due to double inner close call
+
+### Added
+
+- Add `WinDivert::<()>::MAX_BATCH`
 
 ## [sys-0.9.2] - 2023-03-23
 
