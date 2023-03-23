@@ -11,7 +11,6 @@ and this project adheres to
 ### Added
 
 - Add `wait` method variants to windivert
-- Add `WinDivert::<()>::MAX_BATCH`
 
 ### Changed
 
@@ -22,6 +21,23 @@ and this project adheres to
 ### Added
 
 - Add `WinDivertFlags::<layer>_default` methods.
+
+## [0.5.5] - 2023-03-233
+
+### Added
+
+- Add `WinDivert::<()>::MAX_BATCH`
+
+### Fixed
+
+- Fix `close` errors due to double inner close call
+
+## [sys-0.9.2] - 2023-03-23
+
+### Fixed
+
+- Downgrade windows to `0.43` to avoid build issues with `windivert` due to
+  different windows versions
 
 ## [sys-0.9.1] - 2023-02-06
 
@@ -62,8 +78,10 @@ and this project adheres to
 
 - Initial tagged release
 
-[unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.4...HEAD
-[unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.1...HEAD
+[unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.5...HEAD
+[unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.2...HEAD
+[sys-0.9.2]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.1...windivert-sys-0.9.2
+[0.5.5]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.4...windivert-0.5.5
 [sys-0.9.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.0...windivert-sys-0.9.1
 [0.5.4]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.3...windivert-0.5.4
 [0.5.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.1...windivert-0.5.3

@@ -20,10 +20,10 @@ vendored = ["windivert-sys/vendored"]
 [dependencies]
 etherparse = "0.13"
 thiserror = "1"
-windivert-sys = { version = "0.9.2-alpha.1", path = "../windivert-sys" }
+windivert-sys = { version = "0.10.0-alpha.1", path = "../windivert-sys" }
 
 [dependencies.windows]
-version = "0.44"
+version = "0.46"
 features = [
 	"Devices_Custom",
 	"Win32_Devices",
