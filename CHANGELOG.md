@@ -18,11 +18,15 @@ and this project adheres to
 
 ## [Unreleased-sys]
 
+<<<<<<< HEAD
 ### Added
 
 - Add `WinDivertFlags::<layer>_default` methods.
 
 ## [0.5.5] - 2023-03-233
+=======
+## [0.5.5] - 2023-03-23
+>>>>>>> origin/master
 
 ### Added
 
@@ -31,6 +35,10 @@ and this project adheres to
 ### Fixed
 
 - Fix `close` errors due to double inner close call
+
+### Added
+
+- Add `WinDivert::<()>::MAX_BATCH`
 
 ## [sys-0.9.2] - 2023-03-23
 
