@@ -31,8 +31,11 @@ To be able to build `windivert-sys` you require WinDivert library files:
 - As a fallback windivert dll & lib files can be compiled from source if the
   **vendored** feature is enabled. To avoid multiple compilations set
   `WINDIVERT_DLL_OUTPUT` environment variable to save the generated build.
-  **This method won't compile the sys driver files required to use windivert.
-  Sys files must always be provided.**
+- It's possible to compile for statically linking to the windivert library by
+  enabling the **static** feature. Static linking can also be enabled if the
+  `WINDIVERT_STATIC` is set and it takes priority over the crate features.
+- **Any vendoring method will only compile the library. Sys files must always be
+  provided.**
 
 # Usage
 

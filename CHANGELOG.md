@@ -8,13 +8,33 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add `static` feature to statically link to windivert library.
+
 ## [Unreleased-sys]
+
+### Added
+
+- Add `WinDivertFlags::<layer>_default` methods.
+- Add `static` feature to statically link to windivert library.
+
+### Changed
+
+- Refactor build scripts.
+
+## [sys-0.9.3] - 2023-04-03
+
+### Fixed
+
+- Fix wrong comparison in `MF` and `DF` flag getters
 
 ## [sys-0.9.2] - 2023-03-23
 
 ### Fixed
 
-- Fix `close` errors due to double inner close call
+- Downgrade windows to `0.43` to avoid build issues with `windivert` due to
+  different windows versions
 
 ## [0.5.5] - 2023-03-23
 
@@ -25,13 +45,6 @@ and this project adheres to
 ### Added
 
 - Add `WinDivert::<()>::MAX_BATCH`
-
-## [sys-0.9.2] - 2023-03-23
-
-### Fixed
-
-- Downgrade windows to `0.43` to avoid build issues with `windivert` due to
-  different windows versions
 
 ## [sys-0.9.1] - 2023-02-06
 

@@ -1,39 +1,47 @@
-use std::{
-    env, fs,
-    process::{Command, Stdio},
-};
-
 use cc::Build;
+use std::process::{Command, Stdio};
+use std::{env, fs};
 
-pub fn compile(build: Build) {
-    let compiler = build.get_compiler();
+pub fn lib() {
+    let mut build = Build::new();
+    let out_dir = env::var("OUT_DIR").unwrap();
+
+    build
+        .out_dir(&out_dir)
+        .include(r#"vendor\include"#)
+        .ar_flag(r#"-DWINDIVERTEXPORT="""#)
+        .file(r#"vendor\dll\windivert.c"#);
+
+    build.compile("WinDivert");
+}
+
+pub fn dll() {
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let compiler = Build::new().get_compiler();
 
     let mut cmd = compiler.to_command();
     cmd.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-
-    let out_dir = env::var("OUT_DIR").unwrap();
-    println!("cargo:rustc-link-search={out_dir}");
 
     let mangle = if env::var("CARGO_CFG_TARGET_ARCH").unwrap() == "x86" {
         "_"
     } else {
         ""
     };
-    set_gnu_c_options(&mut cmd);
+    cmd.args(DYNAMIC_C_OPTIONS);
     cmd.arg(format!("-Wl,--entry=${mangle}WinDivertDllEntry"));
     cmd.args(["-c", "vendor/dll/windivert.c"]);
     cmd.args(["-o", &format!("{out_dir}/WinDivert.o")]);
     cmd.output().expect("Error compiling windivert c library");
 
-    let mut cmd = build.get_compiler().to_command();
-    set_gnu_c_options(&mut cmd);
+    let mut cmd = Build::new().get_compiler().to_command();
+    cmd.args(DYNAMIC_C_OPTIONS);
     cmd.args(["-o", &format!("{out_dir}/WinDivert.dll")]);
     cmd.args([
         &format!("{out_dir}/WinDivert.o"),
         "vendor/dll/windivert.def",
         "-nostdlib",
     ]);
-    set_gnu_c_libs(&mut cmd);
+    cmd.args(DYNAMIC_C_INCLUDES);
     cmd.output().expect("Error building windivert dll");
 
     let strip = Build::new()
@@ -64,18 +72,14 @@ pub fn compile(build: Build) {
     let _ = fs::remove_file(format!("{out_dir}/WinDivert.o"));
 }
 
-fn set_gnu_c_options(cmd: &mut Command) {
-    cmd.args([
-        "-fno-ident",
-        "-shared",
-        "-Wall",
-        "-Wno-pointer-to-int-cast",
-        "-Os",
-        "-Ivendor/include/",
-        "-Wl,--enable-stdcall-fixup",
-    ]);
-}
+const DYNAMIC_C_OPTIONS: &[&str] = &[
+    r#"-fno-ident"#,
+    r#"-shared"#,
+    r#"-Wall"#,
+    r#"-Wno-pointer-to-int-cast"#,
+    r#"-Os"#,
+    r#"-Ivendor/include/"#,
+    r#"-Wl,--enable-stdcall-fixup"#,
+];
 
-fn set_gnu_c_libs(cmd: &mut Command) {
-    cmd.args(["-lkernel32", "-ladvapi32"]);
-}
+const DYNAMIC_C_INCLUDES: &[&str] = &[r#"-lkernel32"#, r#"-ladvapi32"#];
