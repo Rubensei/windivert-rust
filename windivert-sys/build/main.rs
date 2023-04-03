@@ -46,7 +46,7 @@ fn main() {
             _ => panic!("Unsupported target architecture!"),
         };
 
-        if let Err(_) = fs::metadata(format!("{out_dir}\\WinDivert{arch}.sys")) {
+        if fs::metadata(format!("{out_dir}\\WinDivert{arch}.sys")).is_err() {
             println!(
                 "cargo:warning=WinDivert{arch}.sys not found on the same directory as the dll."
             )

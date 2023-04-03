@@ -32,25 +32,19 @@ pub struct WINDIVERT_IPHDR {
 impl WINDIVERT_IPHDR {
     #[inline]
     pub fn header_length(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(0usize, 4u8) as u8) }
+        self.addr_bitfield.get(0usize, 4u8) as u8
     }
     #[inline]
     pub fn set_header_length(&mut self, val: u8) {
-        unsafe {
-            let val: u8 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(0usize, 4u8, val as u64)
-        }
+        self.addr_bitfield.set(0usize, 4u8, val as u64)
     }
     #[inline]
     pub fn version(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(4usize, 4u8) as u8) }
+        self.addr_bitfield.get(4usize, 4u8) as u8
     }
     #[inline]
     pub fn set_version(&mut self, val: u8) {
-        unsafe {
-            let val: u8 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(4usize, 4u8, val as u64)
-        }
+        self.addr_bitfield.set(4usize, 4u8, val as u64)
     }
     #[inline]
     pub fn length(&self) -> u16 {
@@ -79,7 +73,7 @@ impl WINDIVERT_IPHDR {
     }
     #[inline]
     pub fn MF(&self) -> bool {
-        self.fragment_offset_and_flags & 0x0020 == 1
+        self.fragment_offset_and_flags & 0x0020 != 0
     }
     #[inline]
     pub fn set_MF(&mut self, value: bool) {
@@ -88,7 +82,7 @@ impl WINDIVERT_IPHDR {
     }
     #[inline]
     pub fn DF(&self) -> bool {
-        self.fragment_offset_and_flags & 0x0040 == 1
+        self.fragment_offset_and_flags & 0x0040 != 0
     }
     #[inline]
     pub fn set_DF(&mut self, value: bool) {
@@ -159,14 +153,11 @@ pub struct WINDIVERT_IPV6HDR {
 impl WINDIVERT_IPV6HDR {
     #[inline]
     pub fn version(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(4usize, 4u8) as u8) }
+        self.addr_bitfield.get(4usize, 4u8) as u8
     }
     #[inline]
     pub fn set_version(&mut self, val: u8) {
-        unsafe {
-            let val: u8 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(4usize, 4u8, val as u64)
-        }
+        self.addr_bitfield.set(4usize, 4u8, val as u64)
     }
     #[inline]
     pub fn traffic_class(&self) -> u8 {
@@ -179,25 +170,19 @@ impl WINDIVERT_IPV6HDR {
     }
     #[inline]
     fn traffic_class0(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(0usize, 4u8) as u8) }
+        self.addr_bitfield.get(0usize, 4u8) as u8
     }
     #[inline]
     fn set_traffic_class0(&mut self, val: u8) {
-        unsafe {
-            let val: u8 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(0usize, 4u8, val as u64)
-        }
+        self.addr_bitfield.set(0usize, 4u8, val as u64)
     }
     #[inline]
     fn traffic_class1(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(12usize, 4u8) as u8) }
+        self.addr_bitfield.get(12usize, 4u8) as u8
     }
     #[inline]
     fn set_traffic_class1(&mut self, val: u8) {
-        unsafe {
-            let val: u8 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(12usize, 4u8, val as u64)
-        }
+        self.addr_bitfield.set(12usize, 4u8, val as u64)
     }
     #[inline]
     pub fn flow_label(&self) -> u32 {
@@ -211,14 +196,11 @@ impl WINDIVERT_IPV6HDR {
     }
     #[inline]
     fn flow_label0(&self) -> u8 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(8usize, 4u8) as u8) }
+        self.addr_bitfield.get(8usize, 4u8) as u8
     }
     #[inline]
     fn set_flow_label0(&mut self, val: u8) {
-        unsafe {
-            let val: u8 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(8usize, 4u8, val as u64)
-        }
+        self.addr_bitfield.set(8usize, 4u8, val as u64)
     }
     #[inline]
     pub fn length(&self) -> u16 {
@@ -438,80 +420,59 @@ impl WINDIVERT_TCPHDR {
     }
     #[inline]
     pub fn header_length(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(4usize, 4u8) as u16) }
+        self.addr_bitfield.get(4usize, 4u8) as u16
     }
     #[inline]
     pub fn set_header_length(&mut self, val: u16) {
-        unsafe {
-            let val: u16 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(4usize, 4u8, val as u64)
-        }
+        self.addr_bitfield.set(4usize, 4u8, val as u64)
     }
     #[inline]
     pub fn FIN(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(8usize, 1u8) as u16) }
+        self.addr_bitfield.get(8usize, 1u8) as u16
     }
     #[inline]
     pub fn set_FIN(&mut self, val: u16) {
-        unsafe {
-            let val: u16 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(8usize, 1u8, val as u64)
-        }
+        self.addr_bitfield.set(8usize, 1u8, val as u64)
     }
     #[inline]
     pub fn SYN(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(9usize, 1u8) as u16) }
+        self.addr_bitfield.get(9usize, 1u8) as u16
     }
     #[inline]
     pub fn set_SYN(&mut self, val: u16) {
-        unsafe {
-            let val: u16 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(9usize, 1u8, val as u64)
-        }
+        self.addr_bitfield.set(9usize, 1u8, val as u64)
     }
     #[inline]
     pub fn RST(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(10usize, 1u8) as u16) }
+        self.addr_bitfield.get(10usize, 1u8) as u16
     }
     #[inline]
     pub fn set_RST(&mut self, val: u16) {
-        unsafe {
-            let val: u16 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(10usize, 1u8, val as u64)
-        }
+        self.addr_bitfield.set(10usize, 1u8, val as u64)
     }
     #[inline]
     pub fn PSH(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(11usize, 1u8) as u16) }
+        self.addr_bitfield.get(11usize, 1u8) as u16
     }
     #[inline]
     pub fn set_PSH(&mut self, val: u16) {
-        unsafe {
-            let val: u16 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(11usize, 1u8, val as u64)
-        }
+        self.addr_bitfield.set(11usize, 1u8, val as u64)
     }
     #[inline]
     pub fn ACK(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(12usize, 1u8) as u16) }
+        self.addr_bitfield.get(12usize, 1u8) as u16
     }
     #[inline]
     pub fn set_ACK(&mut self, val: u16) {
-        unsafe {
-            let val: u16 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(12usize, 1u8, val as u64)
-        }
+        self.addr_bitfield.set(12usize, 1u8, val as u64)
     }
     #[inline]
     pub fn URG(&self) -> u16 {
-        unsafe { ::std::mem::transmute(self.addr_bitfield.get(13usize, 1u8) as u16) }
+        self.addr_bitfield.get(13usize, 1u8) as u16
     }
     #[inline]
     pub fn set_URG(&mut self, val: u16) {
-        unsafe {
-            let val: u16 = ::std::mem::transmute(val);
-            self.addr_bitfield.set(13usize, 1u8, val as u64)
-        }
+        self.addr_bitfield.set(13usize, 1u8, val as u64)
     }
     #[inline]
     pub fn window(&self) -> u16 {

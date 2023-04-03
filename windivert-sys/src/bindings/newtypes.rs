@@ -294,7 +294,7 @@ impl WinDivertFlags {
 
     /// Sets `sniff` flag to `value`.
     pub fn set_sniff_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0001) | ((value as u64) << 0);
+        self.0 = (self.0 & !0x0001) | (value as u64);
     }
 
     /// Sets `drop` flag.
@@ -425,7 +425,7 @@ impl ChecksumFlags {
 
     /// Sets `no_ip` flag to `value`.
     pub fn set_no_ip_value(&mut self, value: bool) {
-        self.0 = (self.0 & !0x0001) | ((value as u64) << 0);
+        self.0 = (self.0 & !0x0001) | (value as u64);
     }
 
     /// Sets `no_icmp` flag

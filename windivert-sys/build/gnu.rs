@@ -21,14 +21,14 @@ pub fn compile(build: Build) {
     };
     set_gnu_c_options(&mut cmd);
     cmd.arg(format!("-Wl,--entry=${mangle}WinDivertDllEntry"));
-    cmd.args(&["-c", "vendor/dll/windivert.c"]);
-    cmd.args(&["-o", &format!("{out_dir}/WinDivert.o")]);
+    cmd.args(["-c", "vendor/dll/windivert.c"]);
+    cmd.args(["-o", &format!("{out_dir}/WinDivert.o")]);
     cmd.output().expect("Error compiling windivert c library");
 
     let mut cmd = build.get_compiler().to_command();
     set_gnu_c_options(&mut cmd);
-    cmd.args(&["-o", &format!("{out_dir}/WinDivert.dll")]);
-    cmd.args(&[
+    cmd.args(["-o", &format!("{out_dir}/WinDivert.dll")]);
+    cmd.args([
         &format!("{out_dir}/WinDivert.o"),
         "vendor/dll/windivert.def",
         "-nostdlib",
@@ -56,16 +56,16 @@ pub fn compile(build: Build) {
     let mut dlltool = Command::new(dlltool);
     dlltool.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
-    dlltool.args(&["--dllname", &format!("{out_dir}/WinDivert.dll")]);
-    dlltool.args(&["--def", "vendor/dll/windivert.def"]);
-    dlltool.args(&["--output-lib", &format!("{out_dir}/WinDivert.lib")]);
+    dlltool.args(["--dllname", &format!("{out_dir}/WinDivert.dll")]);
+    dlltool.args(["--def", "vendor/dll/windivert.def"]);
+    dlltool.args(["--output-lib", &format!("{out_dir}/WinDivert.lib")]);
     let _ = dlltool.output().expect("Error building windivert lib");
 
     let _ = fs::remove_file(format!("{out_dir}/WinDivert.o"));
 }
 
 fn set_gnu_c_options(cmd: &mut Command) {
-    cmd.args(&[
+    cmd.args([
         "-fno-ident",
         "-shared",
         "-Wall",
@@ -77,5 +77,5 @@ fn set_gnu_c_options(cmd: &mut Command) {
 }
 
 fn set_gnu_c_libs(cmd: &mut Command) {
-    cmd.args(&["-lkernel32", "-ladvapi32"]);
+    cmd.args(["-lkernel32", "-ladvapi32"]);
 }

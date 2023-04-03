@@ -8,15 +8,13 @@ and this project adheres to
 
 ## [Unreleased]
 
-### Added
-
-- Add `wait` method variants to windivert
-
-### Changed
-
-- Handle `MAX_BATCH` limit in `send_ex`
-
 ## [Unreleased-sys]
+
+## [sys-0.9.2] - 2023-03-23
+
+### Fixed
+
+- Fix `close` errors due to double inner close call
 
 ## [0.5.5] - 2023-03-23
 
@@ -76,6 +74,7 @@ and this project adheres to
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.5...HEAD
 [unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.2...HEAD
+[sys-0.9.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.2...windivert-sys-0.9.3
 [sys-0.9.2]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.1...windivert-sys-0.9.2
 [0.5.5]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.4...windivert-0.5.5
 [sys-0.9.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.0...windivert-sys-0.9.1

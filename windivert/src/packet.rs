@@ -19,7 +19,8 @@ pub struct WinDivertPacket<'a, L: layer::WinDivertLayerTrait> {
 
 impl<'a> WinDivertPacket<'a, layer::NetworkLayer> {
     /// Create a new network packet from a raw buffer
-    /// SAFETY: `address` is zeroed, user must fill it with correct data before sending.
+    /// # Safety
+    /// `address` is zeroed, user must fill it with correct data before sending.
     pub unsafe fn new(data: Vec<u8>) -> Self {
         Self {
             address: WinDivertAddress::<layer::NetworkLayer>::new(),
@@ -49,7 +50,8 @@ impl<'a> WinDivertPacket<'a, layer::NetworkLayer> {
 
 impl<'a> WinDivertPacket<'a, layer::ForwardLayer> {
     /// Create a new network forward packet from a raw buffer
-    /// SAFETY: `address` is zeroed, user must fill it with correct data before sending.
+    /// # Safety
+    /// `address` is zeroed, user must fill it with correct data before sending.
     pub unsafe fn new(data: Vec<u8>) -> Self {
         Self {
             address: WinDivertAddress::<layer::ForwardLayer>::new(),

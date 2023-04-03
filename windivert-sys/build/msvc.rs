@@ -14,7 +14,7 @@ pub fn compile(build: Build) {
     cmd.arg(format!(r#"/Fo{out_dir}\WinDivert.obj"#));
     cmd.arg(format!(r#"/Fd{out_dir}\WinDivert.pdb"#));
 
-    cmd.args(MSVC_ARGS.split(" "));
+    cmd.args(MSVC_ARGS.split(' '));
 
     let arch = match env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
         "x86" => "x86",

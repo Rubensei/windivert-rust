@@ -166,7 +166,7 @@ impl WinDivert<layer::NetworkLayer> {
                 address: WinDivertAddress::<layer::NetworkLayer>::from_raw(addr),
                 data: buffer
                     .map(|inner_buffer| {
-                        let headers = SlicedPacket::from_ip(&inner_buffer)
+                        let headers = SlicedPacket::from_ip(inner_buffer)
                             .expect("WinDivert can't capture anything below ip");
                         let offset = match headers.ip.unwrap() {
                             InternetSlice::Ipv4(ip_header, _) => ip_header.total_len() as usize,
@@ -225,7 +225,7 @@ impl WinDivert<layer::ForwardLayer> {
                 address: WinDivertAddress::<layer::NetworkLayer>::from_raw(addr),
                 data: buffer
                     .map(|inner_buffer| {
-                        let headers = SlicedPacket::from_ip(&inner_buffer)
+                        let headers = SlicedPacket::from_ip(inner_buffer)
                             .expect("WinDivert can't capture anything below ip");
                         let offset = match headers.ip.unwrap() {
                             InternetSlice::Ipv4(ip_header, _) => ip_header.total_len() as usize,
