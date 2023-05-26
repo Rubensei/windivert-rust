@@ -8,11 +8,15 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [Unreleased-sys]
+
+## [0.6.0]
+
 ### Added
 
 - Add `static` feature to statically link to windivert library.
 
-## [Unreleased-sys]
+## [sys-0.10.0]
 
 ### Added
 
@@ -85,8 +89,10 @@ and this project adheres to
 
 - Initial tagged release
 
-[unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.5...HEAD
-[unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.2...HEAD
+[unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...HEAD
+[unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...HEAD
+[0.6.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.5...windivert-0.6.0
+[sys-0.10.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.3...windivert-sys-0.10.0
 [sys-0.9.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.2...windivert-sys-0.9.3
 [sys-0.9.2]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.1...windivert-sys-0.9.2
 [0.5.5]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.4...windivert-0.5.5

@@ -9,7 +9,6 @@ pub fn lib() {
     build
         .out_dir(&out_dir)
         .include(r#"vendor\include"#)
-        .ar_flag(r#"-DWINDIVERTEXPORT="""#)
         .file(r#"vendor\dll\windivert.c"#);
 
     build.compile("WinDivert");

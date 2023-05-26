@@ -32,12 +32,6 @@ pub enum WinDivertError {
     Parameter(WinDivertParam, u64),
 }
 
-// impl From<windows::core::Error> for WinDivertError {
-//     fn from(error: windows::core::Error) -> Self {
-//         Self::OSError(std::io::Error::from_raw_os_error(error.code().0))
-//     }
-// }
-
 /**
 Possible errors for [`WinDivertOpen()`](fn@windivert_sys::WinDivertOpen)
 */
@@ -91,21 +85,10 @@ impl TryFrom<std::io::Error> for WinDivertOpenError {
     type Error = std::io::Error;
 
     fn try_from(error: std::io::Error) -> Result<Self, Self::Error> {
-        if let Some(value) = error.raw_os_error() {
-            match value {
-                2 => Ok(WinDivertOpenError::MissingSYS),
-                5 => Ok(WinDivertOpenError::AccessDenied),
-                87 => Ok(WinDivertOpenError::InvalidParameter),
-                577 => Ok(WinDivertOpenError::InvalidImageHash),
-                654 => Ok(WinDivertOpenError::IncompatibleVersion),
-                1060 => Ok(WinDivertOpenError::MissingInstall),
-                1257 => Ok(WinDivertOpenError::DriverBlocked),
-                1753 => Ok(WinDivertOpenError::BaseFilteringEngineDisabled),
-                _ => Err(std::io::Error::from_raw_os_error(value)),
-            }
-        } else {
-            Err(error)
-        }
+        error
+            .raw_os_error()
+            .map(WinDivertOpenError::try_from)
+            .unwrap_or(Err(error))
     }
 }
 
@@ -138,14 +121,9 @@ impl TryFrom<std::io::Error> for WinDivertRecvError {
     type Error = std::io::Error;
 
     fn try_from(error: std::io::Error) -> Result<Self, Self::Error> {
-        if let Some(value) = error.raw_os_error() {
-            match value {
-                122 => Ok(WinDivertRecvError::InsufficientBuffer),
-                232 => Ok(WinDivertRecvError::NoData),
-                _ => Err(std::io::Error::from_raw_os_error(value)),
-            }
-        } else {
-            Err(error)
-        }
+        error
+            .raw_os_error()
+            .map(WinDivertRecvError::try_from)
+            .unwrap_or(Err(error))
     }
 }
