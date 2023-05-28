@@ -1,0 +1,30 @@
+permissions:
+  contents: read
+on:
+  push:
+    branches: [master, ci-tests]
+  pull_request:
+    branches: [master]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+name: check
+jobs:
+  check:
+    runs-on: windows-latest
+    name: ${{matrix.feature}}-${{ matrix.target }}/stable
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-pc-windows-msvc]
+        feature: [static]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: cargo check
+        run: cargo check --target ${{ matrix.target }} --features ${{ matrix.feature }}
