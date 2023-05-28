@@ -2,7 +2,7 @@ permissions:
   contents: read
 on:
   push:
-    branches: [master, ci-tests]
+    branches: [master]
   pull_request:
     branches: [master]
 concurrency:
@@ -30,7 +30,7 @@ jobs:
         run: cargo check --target x86_64-pc-windows-${{ matrix.compiler }} --features ${{ matrix.feature }}
   doc:
     runs-on: windows-latest
-    name: docs
+    name: docs / stable
     steps:
       - uses: actions/checkout@v3
         with:
