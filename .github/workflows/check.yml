@@ -1,0 +1,61 @@
+permissions:
+  contents: read
+on:
+  push:
+    branches: [master, ci-tests]
+  pull_request:
+    branches: [master]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name || github.run_id }}
+  cancel-in-progress: true
+name: check
+jobs:
+  check:
+    runs-on: windows-latest
+    name: ${{matrix.feature}} / ${{ matrix.compiler }}
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, gnu]
+        feature: [vendored, static]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-${{ matrix.compiler }}
+      - name: cargo check
+        run: cargo check --target x86_64-pc-windows-${{ matrix.compiler }} --features ${{ matrix.feature }}
+  doc:
+    runs-on: windows-latest
+    name: docs
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: cargo doc
+        run: cargo doc --no-deps --all-features
+        env:
+          DOCS_RS: true
+          RUSTDOCFLAGS: --cfg docsrs
+  msrv:
+    runs-on: windows-latest
+    name: msrv / ${{ matrix.msrv }}
+    strategy:
+      fail-fast: false
+      matrix:
+        msrv: [1.64]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.msrv }}
+      - name: cargo +${{ matrix.msrv }} check
+        run: cargo check --all-features
