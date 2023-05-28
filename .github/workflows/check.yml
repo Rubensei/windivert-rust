@@ -12,12 +12,12 @@ name: check
 jobs:
   check:
     runs-on: windows-latest
-    name: ${{matrix.feature}}-${{ matrix.target }}/stable
+    name: ${{matrix.feature}} / stable-${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-pc-windows-msvc]
-        feature: [static]
+        target: [x86_64-pc-windows-msvc, x86_64-pc-windows-gnu]
+        feature: [vendored, static]
     steps:
       - uses: actions/checkout@v3
         with:
