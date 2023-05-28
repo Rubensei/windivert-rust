@@ -6,17 +6,17 @@ on:
   pull_request:
     branches: [master]
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name || github.run_id }}
   cancel-in-progress: true
-name: check
+name: build
 jobs:
-  check:
+  build:
     runs-on: windows-latest
-    name: ${{matrix.feature}} / stable-${{ matrix.target }}
+    name: ${{matrix.feature}} / ${{ matrix.compiler }}
     strategy:
       fail-fast: false
       matrix:
-        target: [x86_64-pc-windows-msvc, x86_64-pc-windows-gnu]
+        compiler: [msvc, gnu]
         feature: [vendored, static]
     steps:
       - uses: actions/checkout@v3
@@ -25,6 +25,6 @@ jobs:
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
-      - name: cargo check
-        run: cargo check --target ${{ matrix.target }} --features ${{ matrix.feature }}
+          targets: x86_64-pc-windows-${{ matrix.compiler }}
+      - name: cargo build
+        run: cargo build --target x86_64-pc-windows-${{ matrix.compiler }} --features ${{ matrix.feature }}
