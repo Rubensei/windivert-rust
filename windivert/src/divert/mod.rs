@@ -52,8 +52,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     ) -> Result<Self, WinDivertError> {
         let filter = CString::new(filter)?;
         let windivert_tls_idx = unsafe { TlsAlloc() };
-        let handle =
-            unsafe { sys::WinDivertOpen(filter.as_ptr(), layer.into(), priority, flags.into()) };
+        let handle = unsafe { sys::WinDivertOpen(filter.as_ptr(), layer, priority, flags) };
         if handle.is_invalid() {
             let open_err = WinDivertOpenError::try_from(std::io::Error::last_os_error())?;
             Err(open_err.into())
@@ -198,7 +197,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             let res = unsafe {
                 GetOverlappedResultEx(
                     self.handle,
-                    &mut overlapped,
+                    &overlapped,
                     &mut packet_length,
                     timeout_ms.get(),
                     false,
@@ -292,7 +291,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     /// Methods that allows to query the driver for parameters.
     pub fn get_param(&self, param: WinDivertParam) -> Result<u64, WinDivertError> {
         let mut value = 0;
-        let res = unsafe { sys::WinDivertGetParam(self.handle, param.into(), &mut value) };
+        let res = unsafe { sys::WinDivertGetParam(self.handle, param, &mut value) };
         if !res.as_bool() {
             return Err(std::io::Error::last_os_error().into());
         }
@@ -305,7 +304,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             WinDivertParam::VersionMajor | WinDivertParam::VersionMinor => {
                 Err(WinDivertError::Parameter(param, value))
             }
-            _ => unsafe { sys::WinDivertSetParam(self.handle, param.into(), value) }
+            _ => unsafe { sys::WinDivertSetParam(self.handle, param, value) }
                 .ok()
                 .map_err(|_| std::io::Error::last_os_error().into()),
         }
@@ -329,7 +328,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
     /// Shutdown function.
     pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> WinResult<()> {
-        let res = unsafe { sys::WinDivertShutdown(self.handle, mode.into()) };
+        let res = unsafe { sys::WinDivertShutdown(self.handle, mode) };
         if !res.as_bool() {
             return Err(WinError::from(unsafe { GetLastError() }));
         }
