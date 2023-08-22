@@ -13,21 +13,16 @@ const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
 impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     fn internal_recv<'a>(
         &self,
-        buffer: Option<&'a mut [u8]>,
+        buffer: &'a mut [u8],
     ) -> Result<WinDivertPacket<'a, L>, WinDivertError> {
         let mut packet_length = 0;
         let mut addr = MaybeUninit::uninit();
-        let (buffer_ptr, buffer_len) = if let Some(ref buffer) = buffer {
-            (buffer.as_ptr(), buffer.len())
-        } else {
-            (std::ptr::null(), 0)
-        };
 
         let res = unsafe {
             sys::WinDivertRecv(
                 self.handle,
-                buffer_ptr as *mut c_void,
-                buffer_len as u32,
+                buffer.as_ptr() as *mut c_void,
+                buffer.len() as u32,
                 &mut packet_length,
                 addr.as_mut_ptr(),
             )
@@ -36,9 +31,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         if res.as_bool() {
             Ok(WinDivertPacket {
                 address: WinDivertAddress::<L>::from_raw(unsafe { addr.assume_init() }),
-                data: buffer
-                    .map(|b| Cow::Borrowed(&b[..packet_length as usize]))
-                    .unwrap_or_default(),
+                data: Cow::Borrowed(&buffer[..packet_length as usize])
             })
         } else {
             let recv_err = WinDivertRecvError::try_from(std::io::Error::last_os_error())?;
@@ -148,7 +141,7 @@ impl WinDivert<layer::NetworkLayer> {
     /// Single packet blocking recv function.
     pub fn recv<'a>(
         &self,
-        buffer: Option<&'a mut [u8]>,
+        buffer: &'a mut [u8],
     ) -> Result<WinDivertPacket<'a, layer::NetworkLayer>, WinDivertError> {
         self.internal_recv(buffer)
     }
@@ -207,7 +200,7 @@ impl WinDivert<layer::ForwardLayer> {
     /// Single packet blocking recv function.
     pub fn recv<'a>(
         &self,
-        buffer: Option<&'a mut [u8]>,
+        buffer: &'a mut [u8],
     ) -> Result<WinDivertPacket<'a, layer::ForwardLayer>, WinDivertError> {
         self.internal_recv(buffer)
     }
@@ -266,7 +259,7 @@ impl WinDivert<layer::FlowLayer> {
     /// Single packet blocking recv function.
     pub fn recv<'a>(
         &self,
-        buffer: Option<&'a mut [u8]>,
+        buffer: &'a mut [u8],
     ) -> Result<WinDivertPacket<'a, layer::FlowLayer>, WinDivertError> {
         self.internal_recv(buffer)
     }
@@ -292,7 +285,7 @@ impl WinDivert<layer::SocketLayer> {
     /// Single packet blocking recv function.
     pub fn recv<'a>(
         &self,
-        buffer: Option<&'a mut [u8]>,
+        buffer: &'a mut [u8],
     ) -> Result<WinDivertPacket<'a, layer::SocketLayer>, WinDivertError> {
         self.internal_recv(buffer)
     }
@@ -318,7 +311,7 @@ impl WinDivert<layer::ReflectLayer> {
     /// Single packet blocking recv function.
     pub fn recv<'a>(
         &self,
-        buffer: Option<&'a mut [u8]>,
+        buffer: &'a mut [u8],
     ) -> Result<WinDivertPacket<'a, layer::ReflectLayer>, WinDivertError> {
         self.internal_recv(buffer)
     }
