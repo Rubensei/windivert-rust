@@ -26,6 +26,14 @@ impl WinDivert<ReflectLayer> {
         self.internal_recv(Some(buffer))
     }
 
+    /// Single packet blocking recv that won't error with [`WinDivertRecvError::InsufficientBuffer`] and will return a [partial packet](`WinDivertPartialPacket`) instead.
+    pub fn partial_recv<'a>(
+        &self,
+        buffer: &'a mut [u8],
+    ) -> Result<PacketEither<'a, ReflectLayer>, WinDivertError> {
+        self.internal_partial_recv(Some(buffer))
+    }
+
     /// Batched blocking recv function.
     pub fn recv_ex<'a>(
         &self,

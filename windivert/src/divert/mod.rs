@@ -87,7 +87,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             (std::ptr::null(), 0)
         };
 
-        unsafe {
+        let res = unsafe {
             sys::WinDivertRecv(
                 self.handle,
                 buffer_ptr as *mut c_void,
@@ -96,7 +96,12 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 addr.as_mut_ptr(),
             )
         }
-        .ok()?;
+        .ok();
+
+        if let Err(err) = res {
+            let recv_error = WinDivertRecvError::try_from(err.code())?;
+            return Err(WinDivertError::Recv(recv_error));
+        }
 
         Ok(WinDivertPacket {
             address: WinDivertAddress::<L>::from_raw(unsafe { addr.assume_init() }),
@@ -104,6 +109,54 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 .map(|b| Cow::Borrowed(&b[..packet_length as usize]))
                 .unwrap_or_default(),
         })
+    }
+
+    pub(crate) fn internal_partial_recv<'a>(
+        &self,
+        buffer: Option<&'a mut [u8]>,
+    ) -> Result<PacketEither<'a, L>, WinDivertError> {
+        let mut packet_length = 0;
+        let mut addr = MaybeUninit::uninit();
+        let (buffer_ptr, buffer_len) = if let Some(ref buffer) = buffer {
+            (buffer.as_ptr(), buffer.len())
+        } else {
+            (std::ptr::null(), 0)
+        };
+
+        let res = unsafe {
+            sys::WinDivertRecv(
+                self.handle,
+                buffer_ptr as *mut c_void,
+                buffer_len as u32,
+                &mut packet_length,
+                addr.as_mut_ptr(),
+            )
+        }
+        .ok();
+
+        let mut is_partial = false;
+        if let Err(err) = res {
+            let recv_error = WinDivertRecvError::try_from(err.code())?;
+            if let WinDivertRecvError::InsufficientBuffer = recv_error {
+                is_partial = true;
+            } else {
+                return Err(WinDivertError::Recv(recv_error));
+            }
+        }
+
+        if is_partial {
+            Ok(PacketEither::Partial(WinDivertPartialPacket {
+                address: WinDivertAddress::<L>::from_raw(unsafe { addr.assume_init() }),
+                data: buffer.map(|b| Cow::Borrowed(b)).unwrap_or_default(),
+            }))
+        } else {
+            Ok(PacketEither::Full(WinDivertPacket {
+                address: WinDivertAddress::<L>::from_raw(unsafe { addr.assume_init() }),
+                data: buffer
+                    .map(|b| Cow::Borrowed(&b[..packet_length as usize]))
+                    .unwrap_or_default(),
+            }))
+        }
     }
 
     pub(crate) fn internal_recv_ex<'a>(
@@ -123,7 +176,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             (std::ptr::null(), 0)
         };
 
-        unsafe {
+        let res = unsafe {
             sys::WinDivertRecvEx(
                 self.handle,
                 buffer_ptr as *mut c_void,
@@ -135,7 +188,12 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 std::ptr::null_mut(),
             )
         }
-        .ok()?;
+        .ok();
+
+        if let Err(err) = res {
+            let recv_error = WinDivertRecvError::try_from(err.code())?;
+            return Err(WinDivertError::Recv(recv_error));
+        }
 
         addr_buffer.truncate((addr_len / ADDR_SIZE as u32) as usize);
         Ok((
@@ -147,7 +205,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     pub(crate) fn internal_send(&self, packet: &WinDivertPacket<L>) -> Result<u32, WinDivertError> {
         let mut injected_length = 0;
 
-        unsafe {
+        let res = unsafe {
             sys::WinDivertSend(
                 self.handle,
                 packet.data.as_ptr() as *const c_void,
@@ -156,7 +214,12 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 packet.address.as_ref(),
             )
         }
-        .ok()?;
+        .ok();
+
+        if let Err(err) = res {
+            let send_error = WinDivertSendError::try_from(err.code())?;
+            return Err(WinDivertError::Send(send_error));
+        }
 
         Ok(injected_length)
     }
@@ -184,7 +247,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             packet_buffer.extend(data.iter());
         }
 
-        unsafe {
+        let res = unsafe {
             sys::WinDivertSendEx(
                 self.handle,
                 packet_buffer.as_ptr() as *const c_void,
@@ -196,7 +259,12 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 std::ptr::null_mut(),
             )
         }
-        .ok()?;
+        .ok();
+
+        if let Err(err) = res {
+            let send_error = WinDivertSendError::try_from(err.code())?;
+            return Err(WinDivertError::Send(send_error));
+        }
 
         Ok(injected_length)
     }

@@ -3,6 +3,12 @@ use std::ffi::NulError;
 
 use thiserror::Error;
 use windivert_sys::{WinDivertParam, WinDivertValueError};
+use windows::{
+    core::HRESULT,
+    Win32::Foundation::{
+        ERROR_HOST_UNREACHABLE, ERROR_INSUFFICIENT_BUFFER, ERROR_NO_DATA, WIN32_ERROR,
+    },
+};
 
 /**
 WinDivert error type.
@@ -108,26 +114,28 @@ pub enum WinDivertRecvError {
     NoData, // 232
 }
 
-impl TryFrom<i32> for WinDivertRecvError {
+impl WinDivertRecvError {
+    const INSUFFICIENT_BUFFER: HRESULT = ERROR_INSUFFICIENT_BUFFER.to_hresult();
+    const NO_DATA: HRESULT = ERROR_NO_DATA.to_hresult();
+}
+
+impl TryFrom<windows::core::HRESULT> for WinDivertRecvError {
     type Error = std::io::Error;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            122 => Ok(WinDivertRecvError::InsufficientBuffer),
-            232 => Ok(WinDivertRecvError::NoData),
-            _ => Err(std::io::Error::from_raw_os_error(value)),
+    fn try_from(error: windows::core::HRESULT) -> Result<Self, Self::Error> {
+        match error {
+            Self::INSUFFICIENT_BUFFER => Ok(WinDivertRecvError::InsufficientBuffer),
+            Self::NO_DATA => Ok(WinDivertRecvError::NoData),
+            _ => Err(std::io::Error::from_raw_os_error(error.0)),
         }
     }
 }
 
-impl TryFrom<std::io::Error> for WinDivertRecvError {
+impl TryFrom<WIN32_ERROR> for WinDivertRecvError {
     type Error = std::io::Error;
 
-    fn try_from(error: std::io::Error) -> Result<Self, Self::Error> {
-        error
-            .raw_os_error()
-            .map(WinDivertRecvError::try_from)
-            .unwrap_or(Err(error))
+    fn try_from(error: WIN32_ERROR) -> Result<Self, Self::Error> {
+        WinDivertRecvError::try_from(error.to_hresult())
     }
 }
 
@@ -142,24 +150,25 @@ pub enum WinDivertSendError {
     HostUnrachable, // 1232
 }
 
-impl TryFrom<i32> for WinDivertSendError {
+impl WinDivertSendError {
+    const HOST_UNREACHABLE: HRESULT = ERROR_HOST_UNREACHABLE.to_hresult();
+}
+
+impl TryFrom<HRESULT> for WinDivertSendError {
     type Error = std::io::Error;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            1232 => Ok(WinDivertSendError::HostUnrachable),
-            _ => Err(std::io::Error::from_raw_os_error(value)),
+    fn try_from(error: HRESULT) -> Result<Self, Self::Error> {
+        match error {
+            Self::HOST_UNREACHABLE => Ok(WinDivertSendError::HostUnrachable),
+            _ => Err(std::io::Error::from_raw_os_error(error.0)),
         }
     }
 }
 
-impl TryFrom<std::io::Error> for WinDivertSendError {
+impl TryFrom<WIN32_ERROR> for WinDivertSendError {
     type Error = std::io::Error;
 
-    fn try_from(error: std::io::Error) -> Result<Self, Self::Error> {
-        error
-            .raw_os_error()
-            .map(WinDivertSendError::try_from)
-            .unwrap_or(Err(error))
+    fn try_from(error: WIN32_ERROR) -> Result<Self, Self::Error> {
+        WinDivertSendError::try_from(error.to_hresult())
     }
 }
