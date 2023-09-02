@@ -11,11 +11,13 @@ and this project adheres to
 ### Added
 
 - `WinDivertSendError`
+- Partial single recv `WinDivert::partial_recv()`
 
 ### Changed
 
 - `WinDivertError` has a `Send` variant
-- `WinDivert::recv()` and `WinDivert::recv_ex()` buffer is now mandatory on data capturing layers and removed from non capturing layers.
+- `WinDivert::recv()` and `WinDivert::recv_ex()` buffer made mandatory on data
+  capturing layers and removed from non capturing layers.
 - Bumped `windows-rs` to 0.51.1
 - Code refactor and cleanup
 
