@@ -1,6 +1,6 @@
 [package]
 name = "windivert-sys"
-version = "0.10.0"
+version = "0.11.0-alpha.1"
 description = "Raw FFI bindings for WinDivert user mode library"
 authors = ["Ruben Serrano Izquierdo <rserranoizq@gmail.com>"]
 repository = "https://github.com/Rubensei/windivert-rust.git"
@@ -27,11 +27,8 @@ static = ["vendored"]
 thiserror = "1"
 
 [dependencies.windows]
-version = "0.48"
-features = [
-    "Win32_Foundation",
-    "Win32_System_IO",
-]
+version = "0.51.1"
+features = ["Win32_Foundation", "Win32_System_IO"]
 
 [build-dependencies]
 cc = "1.0"

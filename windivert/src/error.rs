@@ -18,6 +18,9 @@ pub enum WinDivertError {
     /// Specific errors for [`WinDivert::recv()`](fn@super::WinDivert::<L>::recv).
     #[error(transparent)]
     Recv(#[from] WinDivertRecvError),
+    /// Specific errors for [`WinDivert::send()`](fn@super::WinDivert::<L>::send).
+    #[error(transparent)]
+    Send(#[from] WinDivertSendError),
     /// Error for nul terminated filter strings.
     #[error(transparent)]
     NullError(#[from] NulError),
@@ -124,6 +127,39 @@ impl TryFrom<std::io::Error> for WinDivertRecvError {
         error
             .raw_os_error()
             .map(WinDivertRecvError::try_from)
+            .unwrap_or(Err(error))
+    }
+}
+
+/// Possible errors for `WinDivert::send()` methods.
+#[derive(Debug, Error)]
+pub enum WinDivertSendError {
+    /// WinDivert can't send more than [`WINDIVERT_BATCH_MAX`](windivert_sys::WINDIVERT_BATCH_MAX) packets at once.
+    #[error("Provided packet slice is too large")]
+    TooManyPackets,
+    /// WinDivert will return this error if the TTL of an _impostor_ packet reaches 0.
+    #[error("Host unreachable")]
+    HostUnrachable, // 1232
+}
+
+impl TryFrom<i32> for WinDivertSendError {
+    type Error = std::io::Error;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            1232 => Ok(WinDivertSendError::HostUnrachable),
+            _ => Err(std::io::Error::from_raw_os_error(value)),
+        }
+    }
+}
+
+impl TryFrom<std::io::Error> for WinDivertSendError {
+    type Error = std::io::Error;
+
+    fn try_from(error: std::io::Error) -> Result<Self, Self::Error> {
+        error
+            .raw_os_error()
+            .map(WinDivertSendError::try_from)
             .unwrap_or(Err(error))
     }
 }
