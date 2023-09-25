@@ -8,8 +8,8 @@ pub fn lib() {
 
     build
         .out_dir(&out_dir)
-        .include(r#"vendor\include"#)
-        .file(r#"vendor\dll\windivert.c"#);
+        .include(r"vendor\include")
+        .file(r"vendor\dll\windivert.c");
 
     build.compile("WinDivert");
 }

@@ -267,7 +267,7 @@ impl Debug for WINDIVERT_ADDRESS {
             WinDivertEvent::NetworkPacket => {
                 format!("{:?}", unsafe { self.union_field.Network })
             }
-            WinDivertEvent::FlowStablished | WinDivertEvent::FlowDeleted => {
+            WinDivertEvent::FlowEstablished | WinDivertEvent::FlowDeleted => {
                 format!("{:?}", unsafe { self.union_field.Flow })
             }
             WinDivertEvent::SocketBind

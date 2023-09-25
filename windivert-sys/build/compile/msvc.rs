@@ -9,8 +9,8 @@ pub fn lib() {
 
     build
         .out_dir(&out_dir)
-        .include(r#"vendor\include"#)
-        .file(r#"vendor\dll\windivert.c"#);
+        .include(r"vendor\include")
+        .file(r"vendor\dll\windivert.c");
 
     for &flag in STATIC_CL_ARGS {
         build.flag(flag);
@@ -65,7 +65,7 @@ pub fn dll() {
 }
 
 const DYNAMIC_CL_ARGS: &[&str] = &[
-    r#"/Ivendor\include"#,
+    r"/Ivendor\include",
     r#"/ZI"#,
     r#"/JMC"#,
     r#"/nologo"#,
@@ -86,7 +86,7 @@ const DYNAMIC_CL_ARGS: &[&str] = &[
     r#"/TC"#,
     r#"/FC"#,
     r#"/errorReport:queue"#,
-    r#"vendor\dll\windivert.c"#,
+    r"vendor\dll\windivert.c",
     r#"/link"#,
     r#"/ERRORREPORT:QUEUE"#,
     r#"/INCREMENTAL"#,
