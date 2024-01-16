@@ -53,7 +53,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         let handle = unsafe { sys::WinDivertOpen(filter.as_ptr(), layer, priority, flags) };
         if handle.is_invalid() {
             let open_err = WinDivertOpenError::try_from(std::io::Error::last_os_error())?;
-            Err(open_err.into())
+            Err(WinDivertError::from(open_err))
         } else {
             Ok(Self {
                 handle,
@@ -229,19 +229,20 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         packets: &'packets [WinDivertPacket<'data, L>],
     ) -> Result<u32, WinDivertError> {
         if packets.len() > WinDivert::MAX_BATCH as usize {
-            return Err(WinDivertSendError::TooManyPackets.into());
+            return Err(WinDivertError::from(WinDivertSendError::TooManyPackets));
         }
         let packet_count = packets.len();
         let mut injected_length = 0;
         let mut address_buffer: Vec<WINDIVERT_ADDRESS> = Vec::with_capacity(packet_count);
         let mut data_buffer = Vec::with_capacity(packet_count);
 
+        let mut capacity = 0;
         for packet in packets {
             address_buffer.push(*packet.address.as_ref());
             data_buffer.push(packet.data.as_ref());
+            capacity += packet.data.len();
         }
 
-        let capacity = data_buffer.iter().map(|data| data.len()).sum();
         let mut packet_buffer: Vec<u8> = Vec::with_capacity(capacity);
         for data in data_buffer {
             packet_buffer.extend(data.iter());
