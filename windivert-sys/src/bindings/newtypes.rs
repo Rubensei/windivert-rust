@@ -70,7 +70,7 @@ Each [`WinDivertLayer`] supports one or more kind of events:
  * [`Network`](WinDivertLayer::Network) and [`Forward`](WinDivertLayer::Forward):
    * [`WinDivertEvent::NetworkPacket`]
  * [`Flow`](WinDivertLayer::Flow):
-   * [`WinDivertEvent::FlowStablished`]
+   * [`WinDivertEvent::FlowEstablished`]
    * [`WinDivertEvent::FlowDeleted`]
  * [`Socket`](WinDivertLayer::Socket):
    * [`WinDivertEvent::SocketBind`]
@@ -88,7 +88,7 @@ pub enum WinDivertEvent {
     /// Network packet.
     NetworkPacket = 0,
     /// Flow established.
-    FlowStablished = 1,
+    FlowEstablished = 1,
     /// Flow deleted.
     FlowDeleted = 2,
     /// Socket bind.
@@ -113,7 +113,7 @@ impl TryFrom<u8> for WinDivertEvent {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::NetworkPacket),
-            1 => Ok(Self::FlowStablished),
+            1 => Ok(Self::FlowEstablished),
             2 => Ok(Self::FlowDeleted),
             3 => Ok(Self::SocketBind),
             4 => Ok(Self::SocketConnect),
@@ -131,7 +131,7 @@ impl From<WinDivertEvent> for u8 {
     fn from(value: WinDivertEvent) -> Self {
         match value {
             WinDivertEvent::NetworkPacket => 0,
-            WinDivertEvent::FlowStablished => 1,
+            WinDivertEvent::FlowEstablished => 1,
             WinDivertEvent::FlowDeleted => 2,
             WinDivertEvent::SocketBind => 3,
             WinDivertEvent::SocketConnect => 4,
@@ -208,7 +208,7 @@ pub enum WinDivertParam {
 
     Sets the minimum time, in milliseconds, a packet can be queued before it is automatically dropped. Packets cannot be queued indefinitely, and ideally, packets should be processed by the application as soon as is possible. Note that this sets the minimum time a packet can be queued before it can be dropped. The actual time may be exceed this value.
 
-    The range of valid values goes from [`WINDIVERT_PARAM_QUEUE_TIME_MIN`](value@super::WINDIVERT_PARAM_QUEUE_TIME_MIN) to [`WINDIVERT_PARAM_QUEUE_TIME_MAX`](value@super::WINDIVERT_PARAM_QUEUE_TIME_MAX), with a fefault value of [`WINDIVERT_PARAM_QUEUE_TIME_DEFAULT`](`value@super::WINDIVERT_PARAM_QUEUE_TIME_DEFAULT`).
+    The range of valid values goes from [`WINDIVERT_PARAM_QUEUE_TIME_MIN`](value@super::WINDIVERT_PARAM_QUEUE_TIME_MIN) to [`WINDIVERT_PARAM_QUEUE_TIME_MAX`](value@super::WINDIVERT_PARAM_QUEUE_TIME_MAX), with a default value of [`WINDIVERT_PARAM_QUEUE_TIME_DEFAULT`](`value@super::WINDIVERT_PARAM_QUEUE_TIME_DEFAULT`).
     */
     QueueTime = 1,
     /**
@@ -216,7 +216,7 @@ pub enum WinDivertParam {
 
     Sets the maximum number of bytes that can be stored in the packet queue for [`WinDivertRecv()`](fn@super::WinDivertRecv).
 
-    The range of valid values goes from [`WINDIVERT_PARAM_QUEUE_SIZE_MIN`](value@super::WINDIVERT_PARAM_QUEUE_SIZE_MIN) to [`WINDIVERT_PARAM_QUEUE_SIZE_MAX`](value@super::WINDIVERT_PARAM_QUEUE_SIZE_MAX), with a fefault value of [`WINDIVERT_PARAM_QUEUE_SIZE_DEFAULT`](`value@super::WINDIVERT_PARAM_QUEUE_SIZE_DEFAULT`).
+    The range of valid values goes from [`WINDIVERT_PARAM_QUEUE_SIZE_MIN`](value@super::WINDIVERT_PARAM_QUEUE_SIZE_MIN) to [`WINDIVERT_PARAM_QUEUE_SIZE_MAX`](value@super::WINDIVERT_PARAM_QUEUE_SIZE_MAX), with a default value of [`WINDIVERT_PARAM_QUEUE_SIZE_DEFAULT`](`value@super::WINDIVERT_PARAM_QUEUE_SIZE_DEFAULT`).
     */
     QueueSize = 2,
     /// Obtains the major version of the driver.
@@ -256,13 +256,13 @@ impl From<WinDivertParam> for u32 {
 Flag type required by [`WinDivertOpen()`](fn@super::WinDivertOpen). It follows a builder like style.
 
 Different flags affect how the opened handle behaves. The following flags are supported:
- * `sniff`: This flag opens the WinDivert handle in `packet sniffing` mode. In packet sniffing mode the original packet is not dropped-and-diverted (the default) but copied-and-diverted. This mode is useful for implementing packet sniffing tools similar to those applications that currently use Winpcap.
+ * `sniff`: This flag opens the WinDivert handle in `packet sniffing` mode. In packet sniffing mode the original packet is not dropped-and-diverted (the default) but copied-and-diverted. This mode is useful for implementing packet sniffing tools similar to those applications that currently use WinPcap.
  * `drop`: This flag indicates that the user application does not intend to read matching packets with [`recv()`](fn@super::WinDivertRecv) (or any of it's variants), instead the packets should be silently dropped. This is useful for implementing simple packet filters using the WinDivert [filter language](https://reqrypt.org/windivert-doc.html#filter_language).
  * `recv_only`: This flags forces the handle into receive only mode which effectively disables [`send()`](fn@super::WinDivertSend) (and any of it's variants). This means that it is possible to block/capture packets or events but not inject them.
  * `send_only`: This flags forces the handle into send only mode which effectively disables [`recv()`](fn@super::WinDivertRecv) (and any of it's variants). This means that it is possible to inject packets or events, but not block/capture them.
- * `no_installs`: This flags causes [`WinDivertOpen`](fn@super::WinDivertOpen) to fail with ERROR_SERVICE_DOES_NOT_EXIST (1060) if the WinDivert driver is not already installed. This flag is useful for querying the WinDivert driver state using [`Reflect`](super::WinDivertLayer::Reflect) layer.
- * `fragments`: If set, the handle will capture inbound IP fragments, but not inbound reassembled IP packets. Otherwise, if not set (the default), the handle will capture inbound reassembled IP packets, but not inbound IP fragments. This flag only affects inbound packets at the [`Network`](super::WinDivertLayer::Network) layer, else the flag is ignored.
-Note that any combination of (`snif` | `drop`) or (`recv_only` | `send_only`) are considered invalid.
+ * `no_installs`: This flags causes [`WinDivertOpen`](fn@super::WinDivertOpen) to fail with ERROR_SERVICE_DOES_NOT_EXIST (1060) if the WinDivert driver is not already installed. This flag is useful for querying the WinDivert driver state using [`Reflect`](WinDivertLayer::Reflect) layer.
+ * `fragments`: If set, the handle will capture inbound IP fragments, but not inbound reassembled IP packets. Otherwise, if not set (the default), the handle will capture inbound reassembled IP packets, but not inbound IP fragments. This flag only affects inbound packets at the [`Network`](WinDivertLayer::Network) layer, else the flag is ignored.
+Note that any combination of (`sniff` | `drop`) or (`recv_only` | `send_only`) are considered invalid.
 
 Some layers have mandatory flags:
  * [`WinDivertLayer::Flow`](type@WinDivertLayer::Flow): (`sniff` | `recv_only`)

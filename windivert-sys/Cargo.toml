@@ -27,11 +27,8 @@ static = ["vendored"]
 thiserror = "1"
 
 [dependencies.windows]
-version = "0.48"
-features = [
-    "Win32_Foundation",
-    "Win32_System_IO",
-]
+version = "0.51.1"
+features = ["Win32_Foundation", "Win32_System_IO"]
 
 [build-dependencies]
 cc = "1.0"

@@ -11,8 +11,22 @@ and this project adheres to
 ### Added
 
 - Add `wait` methods back
+- Partial single recv `WinDivert::partial_recv()`
+- `WinDivertSendError`
+
+### Changed
+
+- `WinDivertError` has a `Send` variant
+- `WinDivert::recv()` and `WinDivert::recv_ex()` buffer made mandatory on data
+  capturing layers and removed from non capturing layers.
+- Bumped `windows-rs` to 0.51.1
+- Code refactor and cleanup
 
 ## [Unreleased-sys]
+
+### Changed
+
+- Bumped `windows-rs` to 0.51.1
 
 ## [0.6.0]
 

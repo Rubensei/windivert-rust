@@ -46,6 +46,16 @@ impl<'a> WinDivertPacket<'a, layer::NetworkLayer> {
         }
         Ok(())
     }
+
+    /// TMP
+    pub fn dec_ttl(&mut self) {
+        unsafe {
+            windivert_sys::WinDivertHelperDecrementTTL(
+                self.data.as_ptr() as *mut c_void,
+                self.data.len() as u32,
+            )
+        };
+    }
 }
 
 impl<'a> WinDivertPacket<'a, layer::ForwardLayer> {
@@ -84,7 +94,7 @@ impl<'a, L: layer::WinDivertLayerTrait> WinDivertPacket<'a, L> {
     pub fn into_owned(self) -> WinDivertPacket<'static, L> {
         WinDivertPacket {
             address: self.address,
-            data: self.data.into_owned().into(),
+            data: Cow::Owned(self.data.into_owned()),
         }
     }
 }

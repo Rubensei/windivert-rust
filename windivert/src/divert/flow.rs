@@ -1,5 +1,3 @@
-use std::num::NonZeroU32;
-
 use crate::address::WinDivertAddress;
 use crate::prelude::*;
 
@@ -19,11 +17,8 @@ impl WinDivert<FlowLayer> {
     }
 
     /// Single packet blocking recv function.
-    pub fn recv<'a>(
-        &self,
-        buffer: Option<&'a mut [u8]>,
-    ) -> Result<WinDivertPacket<'a, FlowLayer>, WinDivertError> {
-        self.internal_recv(buffer)
+    pub fn recv<'a>(&self) -> Result<WinDivertPacket<'a, FlowLayer>, WinDivertError> {
+        self.internal_recv(None)
     }
 
     /// Batched blocking recv function.
@@ -41,20 +36,20 @@ impl WinDivert<FlowLayer> {
         }
         Ok(packets)
     }
+
     /// Single packet blocking recv function with timeout.
     pub fn recv_wait<'a>(
         &self,
-        buffer: Option<&'a mut [u8]>,
         timeout_ms: u32,
     ) -> Result<WinDivertPacket<'a, FlowLayer>, WinDivertError> {
-        if let Some(timeout) = NonZeroU32::new(timeout_ms) {
-            self.internal_recv_wait_ex(buffer, 1, timeout)
+        if timeout_ms == 0 {
+            self.internal_recv(None)
+        } else {
+            self.internal_recv_wait_ex(None, 1, timeout_ms)
                 .map(|(data, addr)| WinDivertPacket {
                     address: WinDivertAddress::<FlowLayer>::from_raw(addr[0]),
                     data: data.unwrap_or_default().into(),
                 })
-        } else {
-            self.internal_recv(buffer)
         }
     }
 
@@ -64,10 +59,10 @@ impl WinDivert<FlowLayer> {
         packet_count: u8,
         timeout_ms: u32,
     ) -> Result<Vec<WinDivertPacket<'a, FlowLayer>>, WinDivertError> {
-        let (_, addresses) = if let Some(timeout) = NonZeroU32::new(timeout_ms) {
-            self.internal_recv_wait_ex(None, packet_count, timeout)?
-        } else {
+        let (_, addresses) = if timeout_ms == 0 {
             self.internal_recv_ex(None, packet_count)?
+        } else {
+            self.internal_recv_wait_ex(None, packet_count, timeout_ms)?
         };
         let mut packets = Vec::with_capacity(addresses.len());
         for addr in addresses.into_iter() {

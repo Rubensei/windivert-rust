@@ -21,6 +21,7 @@ pub mod prelude {
         WinDivertEvent, WinDivertFlags, WinDivertLayer, WinDivertParam, WinDivertShutdownMode,
     };
 
+    pub use crate::address::*;
     pub use crate::divert::*;
     pub use crate::error::*;
     pub use crate::layer::*;
