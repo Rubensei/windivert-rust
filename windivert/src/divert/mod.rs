@@ -4,8 +4,7 @@ use std::{
     marker::PhantomData,
     mem::MaybeUninit,
 };
-use std::ffi::{CStr, OsStr, OsString};
-use std::os::windows::ffi::OsStrExt;
+use std::ffi::CStr;
 use std::path::Path;
 
 use windows::{
@@ -437,7 +436,7 @@ impl WinDivert<()> {
 
             // Register event logging and start service
             if let Some(service) = service.as_ref() {
-                register_event_source(path_str.as_c_str());
+                let _ = register_event_source(path_str.as_c_str());
 
                 result = match unsafe { StartServiceA(*service, None) } {
                     Ok(_) => Ok(()),
@@ -503,8 +502,8 @@ fn register_event_source(path_str: &CStr) -> Result<(), windows::core::Error> {
         key.assume_init()
     };
 
-    unsafe { RegSetValueExW(key, w!("EventMessageFile"), 0, REG_SZ, Some(path_str.to_bytes())) };
-    unsafe { RegSetValueExA(key, s!("TypesSupported"), 0, REG_DWORD, Some(&7u32.to_le_bytes())) };
+    let _ = unsafe { RegSetValueExW(key, w!("EventMessageFile"), 0, REG_SZ, Some(path_str.to_bytes())) };
+    let _ = unsafe { RegSetValueExA(key, s!("TypesSupported"), 0, REG_DWORD, Some(&7u32.to_le_bytes())) };
 
     unsafe { RegCloseKey(key)? };
 
