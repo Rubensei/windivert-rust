@@ -48,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        msrv: [1.64]
+        msrv: [1.70]
     steps:
       - uses: actions/checkout@v3
         with:
