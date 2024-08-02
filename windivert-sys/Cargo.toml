@@ -11,7 +11,7 @@ categories = ["external-ffi-bindings"]
 readme = "../README.md"
 license = "LGPL-3.0-or-later"
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.70"
 links = "WinDivert"
 build = "build/main.rs"
 

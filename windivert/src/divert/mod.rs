@@ -60,7 +60,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     pub(crate) fn _get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
         let mut event = HANDLE::default();
         unsafe {
-            event.0 = TlsGetValue(tls_idx) as isize;
+            event.0 = TlsGetValue(tls_idx) as *mut c_void;
             if event.is_invalid() {
                 event = CreateEventA(None, false, false, None)?;
                 TlsSetValue(tls_idx, Some(event.0 as *mut c_void));
@@ -198,15 +198,15 @@ impl WinDivert<()> {
                 SC_MANAGER_ALL_ACCESS,
             )?;
             let res = ControlService(service, SERVICE_CONTROL_STOP, status);
-            if !res.as_bool() {
+            if res.is_err() {
                 return Err(WinError::from(GetLastError()));
             }
             let res = CloseServiceHandle(service);
-            if !res.as_bool() {
+            if res.is_err() {
                 return Err(WinError::from(GetLastError()));
             }
             let res = CloseServiceHandle(manager);
-            if !res.as_bool() {
+            if res.is_err() {
                 return Err(WinError::from(GetLastError()));
             }
         }

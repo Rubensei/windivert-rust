@@ -168,10 +168,10 @@ impl WinDivert<layer::NetworkLayer> {
                     .map(|inner_buffer| {
                         let headers = SlicedPacket::from_ip(inner_buffer)
                             .expect("WinDivert can't capture anything below ip");
-                        let offset = match headers.ip.unwrap() {
-                            InternetSlice::Ipv4(ip_header, _) => ip_header.total_len() as usize,
-                            InternetSlice::Ipv6(ip6header, _) => {
-                                ip6header.payload_length() as usize + 40
+                        let offset = match headers.net.unwrap() {
+                            InternetSlice::Ipv4(ip_header) => ip_header.header().total_len() as usize,
+                            InternetSlice::Ipv6(ip6header) => {
+                                ip6header.header().payload_length() as usize + 40
                             }
                         };
                         let (data, tail) = inner_buffer.split_at(offset);
@@ -227,10 +227,10 @@ impl WinDivert<layer::ForwardLayer> {
                     .map(|inner_buffer| {
                         let headers = SlicedPacket::from_ip(inner_buffer)
                             .expect("WinDivert can't capture anything below ip");
-                        let offset = match headers.ip.unwrap() {
-                            InternetSlice::Ipv4(ip_header, _) => ip_header.total_len() as usize,
-                            InternetSlice::Ipv6(ip6header, _) => {
-                                ip6header.payload_length() as usize + 40
+                        let offset = match headers.net.unwrap() {
+                            InternetSlice::Ipv4(ip_header) => ip_header.header().total_len() as usize,
+                            InternetSlice::Ipv6(ip6header) => {
+                                ip6header.header().payload_length() as usize + 40
                             }
                         };
                         let (data, tail) = inner_buffer.split_at(offset);
