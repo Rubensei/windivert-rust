@@ -22,6 +22,8 @@ and this project adheres to
   capturing layers and removed from non-capturing layers.
 - Bumped `windows-rs` to 0.51.1
 - Code refactor and cleanup
+- Remove `windows` dependency from `windivert-sys` to decouple it from
+  `windows-sys`
 
 ## [Unreleased-sys]
 
