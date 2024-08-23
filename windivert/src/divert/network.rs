@@ -1,9 +1,6 @@
-use std::borrow::Cow;
-
-use etherparse::{InternetSlice, SlicedPacket};
-
 use crate::address::WinDivertAddress;
 use crate::prelude::*;
+use crate::utils::*;
 
 impl WinDivert<NetworkLayer> {
     /// WinDivert constructor for network layer.
@@ -44,17 +41,9 @@ impl WinDivert<NetworkLayer> {
                 address: WinDivertAddress::<NetworkLayer>::from_raw(addr),
                 data: buffer
                     .map(|inner_buffer| {
-                        let headers = SlicedPacket::from_ip(inner_buffer)
-                            .expect("WinDivert can't capture anything below ip");
-                        let offset = match headers.ip.unwrap() {
-                            InternetSlice::Ipv4(ip_header, _) => ip_header.total_len() as usize,
-                            InternetSlice::Ipv6(ip6header, _) => {
-                                ip6header.payload_length() as usize + 40
-                            }
-                        };
-                        let (data, tail) = inner_buffer.split_at(offset);
+                        let (tail, data) = prepare_internet_slice_data(inner_buffer);
                         buffer = Some(tail);
-                        Cow::Borrowed(data)
+                        data
                     })
                     .unwrap_or_default(),
             });
@@ -111,17 +100,9 @@ impl WinDivert<NetworkLayer> {
                 address: WinDivertAddress::<NetworkLayer>::from_raw(addr),
                 data: buffer
                     .map(|inner_buffer| {
-                        let headers = SlicedPacket::from_ip(inner_buffer)
-                            .expect("WinDivert can't capture anything below ip");
-                        let offset = match headers.ip.unwrap() {
-                            InternetSlice::Ipv4(ip_header, _) => ip_header.total_len() as usize,
-                            InternetSlice::Ipv6(ip6header, _) => {
-                                ip6header.payload_length() as usize + 40
-                            }
-                        };
-                        let (data, tail) = inner_buffer.split_at(offset);
+                        let (tail, data) = prepare_internet_slice_data(inner_buffer);
                         buffer = Some(tail);
-                        Cow::Borrowed(data)
+                        data
                     })
                     .unwrap_or_default(),
             });

@@ -2,26 +2,24 @@ use std::{
     borrow::Cow,
     ffi::{c_void, CString},
     marker::PhantomData,
-    mem::MaybeUninit,
+    mem::MaybeUninit, os::windows::ffi::OsStrExt,
 };
-use std::ffi::CStr;
 use std::path::Path;
 
 use windows::{
-    core::PCSTR,
+    core::PCWSTR,
     Win32::{
         Foundation::{BOOL, ERROR_IO_PENDING, ERROR_SERVICE_ALREADY_RUNNING, ERROR_SERVICE_EXISTS, HANDLE, WAIT_ABANDONED, WAIT_OBJECT_0, WAIT_TIMEOUT},
-        Security::SC_HANDLE,
         System::{
-            Services::{
-                CloseServiceHandle, ControlService, CreateServiceA, DeleteService, OpenSCManagerA, OpenServiceA, StartServiceA, SC_MANAGER_ALL_ACCESS, SERVICE_ALL_ACCESS, SERVICE_CONTROL_STOP, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, SERVICE_KERNEL_DRIVER, SERVICE_STATUS
-            }, Threading::{CreateEventA, CreateMutexA, ReleaseMutex, TlsAlloc, TlsGetValue, TlsSetValue, WaitForSingleObject, INFINITE}, IO::{GetOverlappedResult, OVERLAPPED}
+            Registry::RegCreateKeyExW, Services::{
+                CloseServiceHandle, ControlService, CreateServiceW, DeleteService, OpenSCManagerW, OpenServiceW, StartServiceW, SC_HANDLE, SC_MANAGER_ALL_ACCESS, SERVICE_ALL_ACCESS, SERVICE_CONTROL_STOP, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, SERVICE_KERNEL_DRIVER, SERVICE_STATUS
+            }, Threading::{CreateEventW, CreateMutexW, ReleaseMutex, TlsAlloc, TlsGetValue, TlsSetValue, WaitForSingleObject, INFINITE}, IO::{GetOverlappedResult, OVERLAPPED}
         },
     },
 };
-use windows::core::{s, w};
+use windows::core::w;
 use windows::Win32::Foundation::ERROR_SUCCESS;
-use windows::Win32::System::Registry::{HKEY, HKEY_LOCAL_MACHINE, KEY_SET_VALUE, REG_DWORD, REG_OPTION_VOLATILE, REG_SZ, RegCloseKey, RegCreateKeyExA, RegSetValueExA, RegSetValueExW};
+use windows::Win32::System::Registry::{HKEY, HKEY_LOCAL_MACHINE, KEY_SET_VALUE, REG_DWORD, REG_OPTION_VOLATILE, REG_SZ, RegCloseKey, RegSetValueExW};
 
 use windivert_sys as sys;
 use sys::{address::WINDIVERT_ADDRESS, WinDivertParam, WinDivertShutdownMode};
@@ -55,7 +53,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     ) -> Result<Self, WinDivertError> {
         let filter = CString::new(filter)?;
         let windivert_tls_idx = unsafe { TlsAlloc() };
-        let handle = unsafe { HANDLE(sys::WinDivertOpen(filter.as_ptr(), layer, priority, flags) as isize) };
+        let handle = unsafe { HANDLE(sys::WinDivertOpen(filter.as_ptr(), layer, priority, flags)) };
         if handle.is_invalid() {
             let open_err = WinDivertOpenError::try_from(std::io::Error::last_os_error())?;
             Err(WinDivertError::from(open_err))
@@ -71,10 +69,10 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     pub(crate) fn get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
         let mut event = HANDLE::default();
         unsafe {
-            event.0 = TlsGetValue(tls_idx) as isize;
+            event.0 = TlsGetValue(tls_idx);
             if event.is_invalid() {
-                event = CreateEventA(None, false, false, None)?;
-                TlsSetValue(tls_idx, Some(event.0 as *mut c_void))?;
+                event = CreateEventW(None, false, false, None)?;
+                TlsSetValue(tls_idx, Some(event.0))?;
             }
         }
         Ok(event)
@@ -94,7 +92,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         let res = unsafe {
             BOOL(sys::WinDivertRecv(
-                self.handle.0 as *mut c_void,
+                self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
                 &mut packet_length,
@@ -130,7 +128,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         let res = unsafe {
             BOOL(sys::WinDivertRecv(
-                self.handle.0 as *mut c_void,
+                self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
                 &mut packet_length,
@@ -183,7 +181,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         let res = unsafe {
             BOOL(sys::WinDivertRecvEx(
-                self.handle.0 as *mut c_void,
+                self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
                 &mut packet_length,
@@ -230,7 +228,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         let res = unsafe {
             BOOL(sys::WinDivertRecvEx(
-                self.handle.0 as *mut c_void,
+                self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
                 &mut packet_length,
@@ -275,7 +273,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         let res = unsafe {
             BOOL(sys::WinDivertSend(
-                self.handle.0 as *mut c_void,
+                self.handle.0,
                 packet.data.as_ptr() as *const c_void,
                 packet.data.len() as u32,
                 &mut injected_length,
@@ -318,7 +316,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         let res = unsafe {
             BOOL(sys::WinDivertSendEx(
-                self.handle.0 as *mut c_void,
+                self.handle.0,
                 packet_buffer.as_ptr() as *const c_void,
                 packet_buffer.len() as u32,
                 &mut injected_length,
@@ -341,7 +339,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     /// Methods that allows to query the driver for parameters.
     pub fn get_param(&self, param: WinDivertParam) -> Result<u64, WinDivertError> {
         let mut value = 0;
-        unsafe { BOOL(sys::WinDivertGetParam(self.handle.0 as *mut c_void, param, &mut value)) }.ok()?;
+        unsafe { BOOL(sys::WinDivertGetParam(self.handle.0, param, &mut value)) }.ok()?;
         Ok(value)
     }
 
@@ -351,14 +349,14 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             WinDivertParam::VersionMajor | WinDivertParam::VersionMinor => {
                 return Err(WinDivertError::Parameter(param, value));
             }
-            _ => unsafe { BOOL(sys::WinDivertSetParam(self.handle.0 as *mut c_void, param, value)) }.ok()?,
+            _ => unsafe { BOOL(sys::WinDivertSetParam(self.handle.0, param, value)) }.ok()?,
         }
         Ok(())
     }
 
     /// Handle close function.
     pub fn close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
-        unsafe { BOOL(sys::WinDivertClose(self.handle.0 as *mut c_void)) }.ok()?;
+        unsafe { BOOL(sys::WinDivertClose(self.handle.0)) }.ok()?;
         match action {
             CloseAction::Uninstall => WinDivert::uninstall(),
             CloseAction::Nothing => Ok(()),
@@ -367,7 +365,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
     /// Shutdown function.
     pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> windows::core::Result<()> {
-        unsafe { BOOL(sys::WinDivertShutdown(self.handle.0 as *mut c_void, mode)) }.ok()
+        unsafe { BOOL(sys::WinDivertShutdown(self.handle.0, mode)) }.ok()
     }
 }
 
@@ -375,16 +373,16 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 impl WinDivert<()> {
     /// Maximum number of packets that can be captured/sent in a single batched operation
     pub const MAX_BATCH: u8 = windivert_sys::WINDIVERT_BATCH_MAX as u8;
-    const WINDIVERT_DEVICE_NAME: PCSTR = s!("WinDivert");
+    const WINDIVERT_DEVICE_NAME: PCWSTR = w!("WinDivert");
 
     /// Method to manually install WinDivert driver.
     /// This method allow installing a sys file not located on the same folder as the dll
     pub fn install(path: &Path) -> Result<(), WinDivertError> {
-        let path_str = CString::new(path.as_os_str().as_encoded_bytes())?;
+        let path_str = path.as_os_str().encode_wide().into_iter().chain([0]).collect::<Vec<u16>>();
         let mut result = Ok(());
 
         let mutex = unsafe {
-            let mutex = CreateMutexA(None, false, s!("WinDivertDriverInstallMutex"))?;
+            let mutex = CreateMutexW(None, false, w!("WinDivertDriverInstallMutex"))?;
 
             match WaitForSingleObject(mutex, INFINITE) {
                 WAIT_ABANDONED | WAIT_OBJECT_0 => {}
@@ -394,13 +392,13 @@ impl WinDivert<()> {
             mutex
         };
 
-        if let Ok(manager) = unsafe { OpenSCManagerA(None, None, SC_MANAGER_ALL_ACCESS) } {
+        if let Ok(manager) = unsafe { OpenSCManagerW(None, None, SC_MANAGER_ALL_ACCESS) } {
             // Check if service exists
-            let mut service: Option<SC_HANDLE> = unsafe { OpenServiceA(manager, Self::WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS).ok() };
+            let mut service: Option<SC_HANDLE> = unsafe { OpenServiceW(manager, Self::WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS).ok() };
             // Create service if not exists
             if service.is_none() {
                 match unsafe {
-                    CreateServiceA(
+                    CreateServiceW(
                         manager,
                         Self::WINDIVERT_DEVICE_NAME,
                         Self::WINDIVERT_DEVICE_NAME,
@@ -408,7 +406,7 @@ impl WinDivert<()> {
                         SERVICE_KERNEL_DRIVER,
                         SERVICE_DEMAND_START,
                         SERVICE_ERROR_NORMAL,
-                        PCSTR::from_raw(path_str.as_bytes().as_ptr()),
+                        PCWSTR::from_raw(path_str.as_ptr()),
                         None,
                         None,
                         None,
@@ -419,7 +417,7 @@ impl WinDivert<()> {
                     Ok(service_handle) => service = Some(service_handle),
                     Err(err) => {
                         if err.code() == ERROR_SERVICE_EXISTS.to_hresult() {
-                            service = match unsafe { OpenServiceA(manager, Self::WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS) } {
+                            service = match unsafe { OpenServiceW(manager, Self::WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS) } {
                                 Ok(service) => Some(service),
                                 Err(err) => {
                                     result = Err(WinDivertError::OSError(err));
@@ -433,9 +431,9 @@ impl WinDivert<()> {
 
             // Register event logging and start service
             if let Some(service) = service.as_ref() {
-                let _ = register_event_source(path_str.as_c_str());
+                let _ = register_event_source(&path_str);
 
-                result = match unsafe { StartServiceA(*service, None) } {
+                result = match unsafe { StartServiceW(*service, None) } {
                     Ok(_) => Ok(()),
                     Err(err) => {
                         if err.code() == ERROR_SERVICE_ALREADY_RUNNING.to_hresult() {
@@ -463,8 +461,8 @@ impl WinDivert<()> {
     pub fn uninstall() -> Result<(), WinDivertError> {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
         unsafe {
-            let manager = OpenSCManagerA(None, None, SC_MANAGER_ALL_ACCESS)?;
-            let service = OpenServiceA(
+            let manager = OpenSCManagerW(None, None, SC_MANAGER_ALL_ACCESS)?;
+            let service = OpenServiceW(
                 manager,
                 Self::WINDIVERT_DEVICE_NAME,
                 SC_MANAGER_ALL_ACCESS,
@@ -477,33 +475,37 @@ impl WinDivert<()> {
     }
 }
 
-fn register_event_source(path_str: &CStr) -> Result<(), windows::core::Error> {
-    let key = unsafe {
-        let mut key: MaybeUninit<HKEY> = MaybeUninit::uninit();
-        if let Err(err) = RegCreateKeyExA(
-            HKEY_LOCAL_MACHINE,
-            s!("System\\CurrentControlSet\\Services\\EventLog\\System\\WinDivert"),
-            0,
-            None,
-            REG_OPTION_VOLATILE,
-            KEY_SET_VALUE,
-            None,
-            key.as_mut_ptr(),
-            None,
-        ) {
-            if err.code() != ERROR_SUCCESS.to_hresult() {
-                return Err(err)
+fn register_event_source<'a>(path_str: &'a [u16]) -> Result<(), windows::core::Error> {
+    unsafe {
+        let key = {
+            let mut key: MaybeUninit<HKEY> = MaybeUninit::uninit();
+            let result = RegCreateKeyExW(
+                HKEY_LOCAL_MACHINE,
+                w!("System\\CurrentControlSet\\Services\\EventLog\\System\\WinDivert"),
+                0,
+                None,
+                REG_OPTION_VOLATILE,
+                KEY_SET_VALUE,
+                None,
+                key.as_mut_ptr(),
+                None,
+            );
+            if let Err(err) = result.ok() {
+                if result != ERROR_SUCCESS {
+                    return Err(err);
+                }
             }
+
+            key.assume_init()
         };
 
-        key.assume_init()
-    };
+        let event_mesage_file = std::slice::from_raw_parts::<'a>(path_str.as_ptr() as *const u8, path_str.len()*2);
 
-    let _ = unsafe { RegSetValueExW(key, w!("EventMessageFile"), 0, REG_SZ, Some(path_str.to_bytes())) };
-    let _ = unsafe { RegSetValueExA(key, s!("TypesSupported"), 0, REG_DWORD, Some(&7u32.to_le_bytes())) };
+        let _ = RegSetValueExW(key, w!("EventMessageFile"), 0, REG_SZ, Some(event_mesage_file));
+        let _ = RegSetValueExW(key, w!("TypesSupported"), 0, REG_DWORD, Some(&7u32.to_le_bytes()));
 
-    unsafe { RegCloseKey(key)? };
-
+        RegCloseKey(key).ok()?;
+    }
     Ok(())
 }
 

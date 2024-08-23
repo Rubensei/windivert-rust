@@ -27,7 +27,6 @@ and this project adheres to
 
 ### Changed
 
-- Bumped `windows-rs` to 0.51.1
 - Remove `windows` to decouple this crate from `windows-sys`
 
 ## [0.6.0]

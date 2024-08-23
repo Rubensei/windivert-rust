@@ -15,6 +15,8 @@ pub mod packet;
 
 pub use divert::*;
 
+mod utils;
+
 /// Prelude module for [`WinDivert`].
 pub mod prelude {
     pub use windivert_sys::{
