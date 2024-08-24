@@ -166,10 +166,8 @@ extern "C" {
     ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_dec_ttl)
-    pub fn WinDivertHelperDecrementTTL(
-        pPacket: *mut ::std::os::raw::c_void,
-        packetLen: u32,
-    ) -> i32;
+    pub fn WinDivertHelperDecrementTTL(pPacket: *mut ::std::os::raw::c_void, packetLen: u32)
+        -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_compile_filter)
     pub fn WinDivertHelperCompileFilter(

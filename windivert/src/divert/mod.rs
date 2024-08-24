@@ -1,31 +1,47 @@
+use std::path::Path;
 use std::{
     borrow::Cow,
     ffi::{c_void, CString},
     marker::PhantomData,
-    mem::MaybeUninit, os::windows::ffi::OsStrExt,
+    mem::MaybeUninit,
+    os::windows::ffi::OsStrExt,
 };
-use std::path::Path;
 
+use windows::core::w;
+use windows::Win32::Foundation::ERROR_SUCCESS;
+use windows::Win32::System::Registry::{
+    RegCloseKey, RegSetValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_SET_VALUE, REG_DWORD,
+    REG_OPTION_VOLATILE, REG_SZ,
+};
 use windows::{
     core::PCWSTR,
     Win32::{
-        Foundation::{BOOL, ERROR_IO_PENDING, ERROR_SERVICE_ALREADY_RUNNING, ERROR_SERVICE_EXISTS, HANDLE, WAIT_ABANDONED, WAIT_OBJECT_0, WAIT_TIMEOUT},
+        Foundation::{
+            BOOL, ERROR_IO_PENDING, ERROR_SERVICE_ALREADY_RUNNING, ERROR_SERVICE_EXISTS, HANDLE,
+            WAIT_ABANDONED, WAIT_OBJECT_0, WAIT_TIMEOUT,
+        },
         System::{
-            Registry::RegCreateKeyExW, Services::{
-                CloseServiceHandle, ControlService, CreateServiceW, DeleteService, OpenSCManagerW, OpenServiceW, StartServiceW, SC_HANDLE, SC_MANAGER_ALL_ACCESS, SERVICE_ALL_ACCESS, SERVICE_CONTROL_STOP, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL, SERVICE_KERNEL_DRIVER, SERVICE_STATUS
-            }, Threading::{CreateEventW, CreateMutexW, ReleaseMutex, TlsAlloc, TlsGetValue, TlsSetValue, WaitForSingleObject, INFINITE}, IO::{GetOverlappedResult, OVERLAPPED}
+            Registry::RegCreateKeyExW,
+            Services::{
+                CloseServiceHandle, ControlService, CreateServiceW, DeleteService, OpenSCManagerW,
+                OpenServiceW, StartServiceW, SC_HANDLE, SC_MANAGER_ALL_ACCESS, SERVICE_ALL_ACCESS,
+                SERVICE_CONTROL_STOP, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL,
+                SERVICE_KERNEL_DRIVER, SERVICE_STATUS,
+            },
+            Threading::{
+                CreateEventW, CreateMutexW, ReleaseMutex, TlsAlloc, TlsGetValue, TlsSetValue,
+                WaitForSingleObject, INFINITE,
+            },
+            IO::{GetOverlappedResult, OVERLAPPED},
         },
     },
 };
-use windows::core::w;
-use windows::Win32::Foundation::ERROR_SUCCESS;
-use windows::Win32::System::Registry::{HKEY, HKEY_LOCAL_MACHINE, KEY_SET_VALUE, REG_DWORD, REG_OPTION_VOLATILE, REG_SZ, RegCloseKey, RegSetValueExW};
 
-use windivert_sys as sys;
 use sys::{address::WINDIVERT_ADDRESS, WinDivertParam, WinDivertShutdownMode};
+use windivert_sys as sys;
 
-use crate::{address::WinDivertAddress, layer};
 use crate::prelude::*;
+use crate::{address::WinDivertAddress, layer};
 
 mod flow;
 mod forward;
@@ -238,7 +254,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 &mut overlapped as *mut OVERLAPPED as *mut c_void,
             ))
         }
-            .ok();
+        .ok();
 
         if let Err(err) = res {
             if err.code() != ERROR_IO_PENDING.to_hresult() {
@@ -345,13 +361,11 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
     /// Method that allows setting driver parameters.
     pub fn set_param(&self, param: WinDivertParam, value: u64) -> Result<(), WinDivertError> {
-        match param {
-            WinDivertParam::VersionMajor | WinDivertParam::VersionMinor => {
-                return Err(WinDivertError::Parameter(param, value));
-            }
-            _ => unsafe { BOOL(sys::WinDivertSetParam(self.handle.0, param, value)) }.ok()?,
+        if let WinDivertParam::VersionMajor | WinDivertParam::VersionMinor = param {
+            return Err(WinDivertError::Parameter(param, value));
+        } else {
+            Ok(unsafe { BOOL(sys::WinDivertSetParam(self.handle.0, param, value)) }.ok()?)
         }
-        Ok(())
     }
 
     /// Handle close function.
@@ -364,8 +378,8 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     }
 
     /// Shutdown function.
-    pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> windows::core::Result<()> {
-        unsafe { BOOL(sys::WinDivertShutdown(self.handle.0, mode)) }.ok()
+    pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> Result<(), WinDivertError> {
+        Ok(unsafe { BOOL(sys::WinDivertShutdown(self.handle.0, mode)) }.ok()?)
     }
 }
 
@@ -378,27 +392,33 @@ impl WinDivert<()> {
     /// Method to manually install WinDivert driver.
     /// This method allow installing a sys file not located on the same folder as the dll
     pub fn install(path: &Path) -> Result<(), WinDivertError> {
-        let path_str = path.as_os_str().encode_wide().into_iter().chain([0]).collect::<Vec<u16>>();
+        let path_str = path
+            .as_os_str()
+            .encode_wide()
+            .into_iter()
+            .chain([0])
+            .collect::<Vec<u16>>();
         let mut result = Ok(());
 
-        let mutex = unsafe {
-            let mutex = CreateMutexW(None, false, w!("WinDivertDriverInstallMutex"))?;
+        let result = unsafe {
+            let mutex = {
+                let mutex = CreateMutexW(None, false, w!("WinDivertDriverInstallMutex"))?;
 
-            match WaitForSingleObject(mutex, INFINITE) {
-                WAIT_ABANDONED | WAIT_OBJECT_0 => {}
-                _ => return Err(WinDivertError::OSError(windows::core::Error::from_win32()))
-            }
+                match WaitForSingleObject(mutex, INFINITE) {
+                    WAIT_ABANDONED | WAIT_OBJECT_0 => {}
+                    _ => return Err(WinDivertError::OSError(windows::core::Error::from_win32())),
+                }
 
-            mutex
-        };
+                mutex
+            };
 
-        if let Ok(manager) = unsafe { OpenSCManagerW(None, None, SC_MANAGER_ALL_ACCESS) } {
-            // Check if service exists
-            let mut service: Option<SC_HANDLE> = unsafe { OpenServiceW(manager, Self::WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS).ok() };
-            // Create service if not exists
-            if service.is_none() {
-                match unsafe {
-                    CreateServiceW(
+            if let Ok(manager) = OpenSCManagerW(None, None, SC_MANAGER_ALL_ACCESS) {
+                // Check if service exists
+                let mut service: Option<SC_HANDLE> =
+                    OpenServiceW(manager, Self::WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS).ok();
+                // Create service if not exists
+                if service.is_none() {
+                    match CreateServiceW(
                         manager,
                         Self::WINDIVERT_DEVICE_NAME,
                         Self::WINDIVERT_DEVICE_NAME,
@@ -412,48 +432,52 @@ impl WinDivert<()> {
                         None,
                         None,
                         None,
-                    )
-                } {
-                    Ok(service_handle) => service = Some(service_handle),
-                    Err(err) => {
-                        if err.code() == ERROR_SERVICE_EXISTS.to_hresult() {
-                            service = match unsafe { OpenServiceW(manager, Self::WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS) } {
-                                Ok(service) => Some(service),
-                                Err(err) => {
-                                    result = Err(WinDivertError::OSError(err));
-                                    None
+                    ) {
+                        Ok(service_handle) => service = Some(service_handle),
+                        Err(err) => {
+                            if err.code() == ERROR_SERVICE_EXISTS.to_hresult() {
+                                service = match OpenServiceW(
+                                    manager,
+                                    Self::WINDIVERT_DEVICE_NAME,
+                                    SERVICE_ALL_ACCESS,
+                                ) {
+                                    Ok(service) => Some(service),
+                                    Err(err) => {
+                                        result = Err(WinDivertError::OSError(err));
+                                        None
+                                    }
                                 }
                             }
                         }
-                    }
-                };
-            }
-
-            // Register event logging and start service
-            if let Some(service) = service.as_ref() {
-                let _ = register_event_source(&path_str);
-
-                result = match unsafe { StartServiceW(*service, None) } {
-                    Ok(_) => Ok(()),
-                    Err(err) => {
-                        if err.code() == ERROR_SERVICE_ALREADY_RUNNING.to_hresult() {
-                            Ok(())
-                        } else {
-                            Err(WinDivertError::OSError(err))
-                        }
-                    }
-                };
-
-                if result.is_ok() {
-                    let _ = unsafe { DeleteService(*service) };
+                    };
                 }
+
+                // Register event logging and start service
+                if let Some(service) = service.as_ref() {
+                    let _ = register_event_source(&path_str);
+
+                    result = match StartServiceW(*service, None) {
+                        Ok(_) => Ok(()),
+                        Err(err) => {
+                            if err.code() == ERROR_SERVICE_ALREADY_RUNNING.to_hresult() {
+                                Ok(())
+                            } else {
+                                Err(WinDivertError::OSError(err))
+                            }
+                        }
+                    };
+
+                    if result.is_ok() {
+                        let _ = DeleteService(*service);
+                    }
+                }
+
+                CloseServiceHandle(manager).expect("Manager can't be invalid");
             }
 
-
-            unsafe { CloseServiceHandle(manager).expect("Manager can't be invalid") };
-        }
-
-        unsafe { ReleaseMutex(mutex).expect("Mutex is always owned by the current thread at this point") };
+            ReleaseMutex(mutex).expect("Mutex is always owned by the current thread at this point");
+            result
+        };
         result
     }
 
@@ -462,11 +486,8 @@ impl WinDivert<()> {
         let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
         unsafe {
             let manager = OpenSCManagerW(None, None, SC_MANAGER_ALL_ACCESS)?;
-            let service = OpenServiceW(
-                manager,
-                Self::WINDIVERT_DEVICE_NAME,
-                SC_MANAGER_ALL_ACCESS,
-            )?;
+            let service =
+                OpenServiceW(manager, Self::WINDIVERT_DEVICE_NAME, SC_MANAGER_ALL_ACCESS)?;
             ControlService(service, SERVICE_CONTROL_STOP, status)?;
             CloseServiceHandle(service)?;
             CloseServiceHandle(manager)?;
@@ -475,7 +496,9 @@ impl WinDivert<()> {
     }
 }
 
-fn register_event_source<'a>(path_str: &'a [u16]) -> Result<(), windows::core::Error> {
+/// SAFETY
+/// `path_str` must be a null terminated slice of 16bits unicode characters
+unsafe fn register_event_source<'a>(path_str: &'a [u16]) -> Result<(), windows::core::Error> {
     unsafe {
         let key = {
             let mut key: MaybeUninit<HKEY> = MaybeUninit::uninit();
@@ -499,10 +522,23 @@ fn register_event_source<'a>(path_str: &'a [u16]) -> Result<(), windows::core::E
             key.assume_init()
         };
 
-        let event_mesage_file = std::slice::from_raw_parts::<'a>(path_str.as_ptr() as *const u8, path_str.len()*2);
+        let event_mesage_file =
+            std::slice::from_raw_parts::<'a>(path_str.as_ptr() as *const u8, path_str.len() * 2);
 
-        let _ = RegSetValueExW(key, w!("EventMessageFile"), 0, REG_SZ, Some(event_mesage_file));
-        let _ = RegSetValueExW(key, w!("TypesSupported"), 0, REG_DWORD, Some(&7u32.to_le_bytes()));
+        let _ = RegSetValueExW(
+            key,
+            w!("EventMessageFile"),
+            0,
+            REG_SZ,
+            Some(event_mesage_file),
+        );
+        let _ = RegSetValueExW(
+            key,
+            w!("TypesSupported"),
+            0,
+            REG_DWORD,
+            Some(&7u32.to_le_bytes()),
+        );
 
         RegCloseKey(key).ok()?;
     }

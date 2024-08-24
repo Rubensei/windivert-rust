@@ -75,10 +75,10 @@ impl WinDivert<NetworkLayer> {
             self.internal_recv(Some(buffer))
         } else {
             self.internal_recv_wait_ex(Some(buffer), 1, timeout_ms)
-            .map(|(data, addr)| WinDivertPacket {
-                address: WinDivertAddress::<NetworkLayer>::from_raw(addr[0]),
-                data: data.unwrap_or_default().into(),
-            })
+                .map(|(data, addr)| WinDivertPacket {
+                    address: WinDivertAddress::<NetworkLayer>::from_raw(addr[0]),
+                    data: data.unwrap_or_default().into(),
+                })
         }
     }
 
