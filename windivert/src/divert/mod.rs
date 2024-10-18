@@ -113,13 +113,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         .ok();
 
         if let Err(err) = res {
-            #[cfg(test)]
-            println!("{:?}", err);
-            #[cfg(test)]
-            println!("{:?}", err.code());
             let recv_error = WinDivertRecvError::try_from(err)?;
-            #[cfg(test)]
-            println!("{:?}", recv_error);
             return Err(WinDivertError::Recv(recv_error));
         }
 
