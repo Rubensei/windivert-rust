@@ -14,6 +14,7 @@ pub(crate) struct SysWrapper;
 
 #[cfg_attr(test, automock)]
 impl SysWrapper {
+    #[inline]
     pub(crate) unsafe fn WinDivertOpen(
         &self,
         filter: *const core::ffi::c_char,
@@ -24,6 +25,7 @@ impl SysWrapper {
         windivert_sys::WinDivertOpen(filter, layer, priority, flags)
     }
 
+    #[inline]
     pub(crate) unsafe fn WinDivertRecv(
         &self,
         handle: *mut core::ffi::c_void,
@@ -35,6 +37,7 @@ impl SysWrapper {
         windivert_sys::WinDivertRecv(handle, pPacket, packetLen, pRecvLen, pAddr)
     }
 
+    #[inline]
     pub(crate) unsafe fn WinDivertRecvEx(
         &self,
         handle: *mut core::ffi::c_void,
@@ -58,6 +61,7 @@ impl SysWrapper {
         )
     }
 
+    #[inline]
     pub(crate) unsafe fn WinDivertSend(
         &self,
         handle: *mut core::ffi::c_void,
@@ -69,6 +73,7 @@ impl SysWrapper {
         windivert_sys::WinDivertSend(handle, pPacket, packetLen, pSendLen, pAddr)
     }
 
+    #[inline]
     pub(crate) unsafe fn WinDivertSendEx(
         &self,
         handle: *mut core::ffi::c_void,
