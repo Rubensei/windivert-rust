@@ -29,6 +29,8 @@ and this project adheres to
 
 - Remove `windows` to decouple this crate from `windows-sys`
 - Replace `std::os::raw` with `core::ffi`
+- Fix typo in enum variant name: `WinDivertEvent::FlowStablished` to
+  `WinDivertEvent::FlowEstablished`
 
 ## [0.6.0]
 
