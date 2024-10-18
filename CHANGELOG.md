@@ -28,6 +28,7 @@ and this project adheres to
 ### Changed
 
 - Remove `windows` to decouple this crate from `windows-sys`
+- Replace `std::os::raw` with `core::ffi`
 
 ## [0.6.0]
 

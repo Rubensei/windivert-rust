@@ -118,23 +118,23 @@ impl WinDivertRecvError {
     const NO_DATA: HRESULT = ERROR_NO_DATA.to_hresult();
 }
 
-impl TryFrom<windows::core::HRESULT> for WinDivertRecvError {
-    type Error = std::io::Error;
+impl TryFrom<windows::core::Error> for WinDivertRecvError {
+    type Error = windows::core::Error;
 
-    fn try_from(error: windows::core::HRESULT) -> Result<Self, Self::Error> {
-        match error {
+    fn try_from(error: windows::core::Error) -> Result<Self, Self::Error> {
+        match error.code() {
             Self::INSUFFICIENT_BUFFER => Ok(WinDivertRecvError::InsufficientBuffer),
             Self::NO_DATA => Ok(WinDivertRecvError::NoData),
-            _ => Err(std::io::Error::from_raw_os_error(error.0)),
+            _ => Err(error),
         }
     }
 }
 
 impl TryFrom<WIN32_ERROR> for WinDivertRecvError {
-    type Error = std::io::Error;
+    type Error = windows::core::Error;
 
     fn try_from(error: WIN32_ERROR) -> Result<Self, Self::Error> {
-        WinDivertRecvError::try_from(error.to_hresult())
+        WinDivertRecvError::try_from(windows::core::Error::from_hresult(error.to_hresult()))
     }
 }
 

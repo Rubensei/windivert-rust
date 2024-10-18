@@ -8,7 +8,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name || github.run_id }}
   cancel-in-progress: true
-name: check
+name: check & test
 jobs:
   check:
     runs-on: windows-latest
@@ -19,7 +19,7 @@ jobs:
         compiler: [msvc, gnu]
         feature: [vendored, static]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Install stable
@@ -28,11 +28,13 @@ jobs:
           targets: x86_64-pc-windows-${{ matrix.compiler }}
       - name: cargo check
         run: cargo check --target x86_64-pc-windows-${{ matrix.compiler }} --features ${{ matrix.feature }}
+      - name: cargo test
+        run: cargo test --target x86_64-pc-windows-${{ matrix.compiler }} --features ${{ matrix.feature }}
   doc:
     runs-on: windows-latest
     name: docs / stable
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Install stable
@@ -48,9 +50,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        msrv: [1.64]
+        msrv: ["1.70"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Install stable

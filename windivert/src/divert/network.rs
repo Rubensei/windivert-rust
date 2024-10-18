@@ -1,6 +1,7 @@
 use crate::address::WinDivertAddress;
-use crate::prelude::*;
 use crate::utils::*;
+
+use super::*;
 
 impl WinDivert<NetworkLayer> {
     /// WinDivert constructor for network layer.
@@ -108,5 +109,100 @@ impl WinDivert<NetworkLayer> {
             });
         }
         Ok(packets)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(non_snake_case)]
+    use std::io::Write;
+
+    use super::*;
+    use windows::Win32::Foundation::SetLastError;
+
+    fn setup_divert(sys_wrapper: SysWrapper) -> WinDivert<NetworkLayer> {
+        WinDivert {
+            handle: HANDLE(&mut 1u8 as *mut u8 as *mut c_void),
+            tls_index: TlsIndex::alloc_tls().unwrap(),
+            core: sys_wrapper,
+            _layer: PhantomData::<NetworkLayer>,
+        }
+    }
+
+    #[test]
+    fn single_packet_recv_ok() {
+        let mut sys_wrapper = SysWrapper::default();
+        sys_wrapper
+            .expect_WinDivertRecv()
+            .returning(|_, pPacket, packetLen, pRecvLen, _| unsafe {
+                let mut buffer =
+                    std::slice::from_raw_parts_mut(pPacket as *mut u8, packetLen as usize);
+                *pRecvLen = buffer.write(crate::test_data::ECHO_REQUEST).unwrap() as u32;
+                1
+            });
+        let divert = setup_divert(sys_wrapper);
+        let mut buffer = vec![0; 1500];
+        let packet = divert.recv(&mut buffer[..]);
+        assert!(packet.is_ok());
+        let packet = packet.unwrap();
+        assert_eq!(packet.data[..], crate::test_data::ECHO_REQUEST[..]);
+    }
+
+    #[test]
+    fn single_packet_recv_insufficient_buffer() {
+        let mut sys_wrapper = SysWrapper::default();
+        sys_wrapper
+            .expect_WinDivertRecv()
+            .returning(|_, _, _, _, _| unsafe {
+                SetLastError(windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER);
+                0
+            });
+        let divert = setup_divert(sys_wrapper);
+        let mut buffer = vec![0; 1500];
+        let packet = divert.recv(&mut buffer[..]);
+        assert!(packet.is_err());
+        let error = packet.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Recv(WinDivertRecvError::InsufficientBuffer)
+        ));
+    }
+
+    #[test]
+    fn single_packet_recv_no_data() {
+        let mut sys_wrapper = SysWrapper::default();
+        sys_wrapper
+            .expect_WinDivertRecv()
+            .returning(|_, _, _, _, _| unsafe {
+                SetLastError(windows::Win32::Foundation::ERROR_NO_DATA);
+                0
+            });
+        let divert = setup_divert(sys_wrapper);
+        let mut buffer = vec![0; 1500];
+        let packet = divert.recv(&mut buffer[..]);
+        assert!(packet.is_err());
+        let error = packet.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Recv(WinDivertRecvError::NoData)
+        ));
+    }
+
+    #[test]
+    fn single_packet_recv_sys_error() {
+        let mut sys_wrapper = SysWrapper::default();
+        sys_wrapper
+            .expect_WinDivertRecv()
+            .returning(|_, _, _, _, _| unsafe {
+                SetLastError(windows::Win32::Foundation::ERROR_ACCESS_DENIED);
+                0
+            });
+        let divert = setup_divert(sys_wrapper);
+        let mut buffer = vec![0; 1500];
+        let packet = divert.recv(&mut buffer[..]);
+        assert!(packet.is_err());
+        eprintln!("{:?}", packet);
+        let error = packet.unwrap_err();
+        assert!(matches!(error, WinDivertError::OSError(_)));
     }
 }

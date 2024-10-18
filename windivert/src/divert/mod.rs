@@ -1,47 +1,50 @@
-use std::path::Path;
 use std::{
     borrow::Cow,
     ffi::{c_void, CString},
     marker::PhantomData,
     mem::MaybeUninit,
     os::windows::ffi::OsStrExt,
+    path::Path,
 };
 
-use windows::core::w;
-use windows::Win32::Foundation::ERROR_SUCCESS;
-use windows::Win32::System::Registry::{
-    RegCloseKey, RegSetValueExW, HKEY, HKEY_LOCAL_MACHINE, KEY_SET_VALUE, REG_DWORD,
-    REG_OPTION_VOLATILE, REG_SZ,
-};
 use windows::{
-    core::PCWSTR,
+    core::{w, PCWSTR},
     Win32::{
         Foundation::{
-            BOOL, ERROR_IO_PENDING, ERROR_SERVICE_ALREADY_RUNNING, ERROR_SERVICE_EXISTS, HANDLE,
-            WAIT_ABANDONED, WAIT_OBJECT_0, WAIT_TIMEOUT,
+            BOOL, ERROR_IO_PENDING, ERROR_SERVICE_ALREADY_RUNNING, ERROR_SERVICE_EXISTS,
+            ERROR_SUCCESS, HANDLE, WAIT_ABANDONED, WAIT_OBJECT_0, WAIT_TIMEOUT,
         },
         System::{
-            Registry::RegCreateKeyExW,
+            Registry::{
+                RegCloseKey, RegCreateKeyExW, RegSetValueExW, HKEY, HKEY_LOCAL_MACHINE,
+                KEY_SET_VALUE, REG_DWORD, REG_OPTION_VOLATILE, REG_SZ,
+            },
             Services::{
                 CloseServiceHandle, ControlService, CreateServiceW, DeleteService, OpenSCManagerW,
                 OpenServiceW, StartServiceW, SC_HANDLE, SC_MANAGER_ALL_ACCESS, SERVICE_ALL_ACCESS,
                 SERVICE_CONTROL_STOP, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL,
                 SERVICE_KERNEL_DRIVER, SERVICE_STATUS,
             },
-            Threading::{
-                CreateEventW, CreateMutexW, ReleaseMutex, TlsAlloc, TlsGetValue, TlsSetValue,
-                WaitForSingleObject, INFINITE,
-            },
+            Threading::{CreateMutexW, ReleaseMutex, WaitForSingleObject, INFINITE},
             IO::{GetOverlappedResult, OVERLAPPED},
         },
     },
 };
 
-use sys::{address::WINDIVERT_ADDRESS, WinDivertParam, WinDivertShutdownMode};
-use windivert_sys as sys;
+use windivert_sys::{
+    address::WINDIVERT_ADDRESS, WinDivertClose, WinDivertGetParam, WinDivertParam,
+    WinDivertSetParam, WinDivertShutdown, WinDivertShutdownMode,
+};
 
+#[cfg(test)]
+use crate::core::MockSysWrapper as SysWrapper;
+
+#[cfg(not(test))]
+use crate::core::SysWrapper;
+
+use crate::core::winapi::tls::TlsIndex;
+use crate::layer;
 use crate::prelude::*;
-use crate::{address::WinDivertAddress, layer};
 
 mod flow;
 mod forward;
@@ -53,7 +56,8 @@ mod socket;
 #[non_exhaustive]
 pub struct WinDivert<L: layer::WinDivertLayerTrait> {
     handle: HANDLE,
-    _tls_idx: u32,
+    tls_index: TlsIndex,
+    core: SysWrapper,
     _layer: PhantomData<L>,
 }
 
@@ -68,30 +72,21 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
         let filter = CString::new(filter)?;
-        let windivert_tls_idx = unsafe { TlsAlloc() };
-        let handle = unsafe { HANDLE(sys::WinDivertOpen(filter.as_ptr(), layer, priority, flags)) };
+        let windivert_tls_idx = TlsIndex::alloc_tls()?;
+        let sys_wrapper = SysWrapper::default();
+        let handle =
+            unsafe { HANDLE(sys_wrapper.WinDivertOpen(filter.as_ptr(), layer, priority, flags)) };
         if handle.is_invalid() {
             let open_err = WinDivertOpenError::try_from(std::io::Error::last_os_error())?;
             Err(WinDivertError::from(open_err))
         } else {
             Ok(Self {
                 handle,
-                _tls_idx: windivert_tls_idx,
+                tls_index: windivert_tls_idx,
+                core: sys_wrapper,
                 _layer: PhantomData::<L>,
             })
         }
-    }
-
-    pub(crate) fn get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
-        let mut event = HANDLE::default();
-        unsafe {
-            event.0 = TlsGetValue(tls_idx);
-            if event.is_invalid() {
-                event = CreateEventW(None, false, false, None)?;
-                TlsSetValue(tls_idx, Some(event.0))?;
-            }
-        }
-        Ok(event)
     }
 
     pub(crate) fn internal_recv<'a>(
@@ -107,7 +102,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         };
 
         let res = unsafe {
-            BOOL(sys::WinDivertRecv(
+            BOOL(self.core.WinDivertRecv(
                 self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
@@ -118,7 +113,13 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         .ok();
 
         if let Err(err) = res {
-            let recv_error = WinDivertRecvError::try_from(err.code())?;
+            #[cfg(test)]
+            println!("{:?}", err);
+            #[cfg(test)]
+            println!("{:?}", err.code());
+            let recv_error = WinDivertRecvError::try_from(err)?;
+            #[cfg(test)]
+            println!("{:?}", recv_error);
             return Err(WinDivertError::Recv(recv_error));
         }
 
@@ -143,7 +144,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         };
 
         let res = unsafe {
-            BOOL(sys::WinDivertRecv(
+            BOOL(self.core.WinDivertRecv(
                 self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
@@ -155,7 +156,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         let mut is_partial = false;
         if let Err(err) = res {
-            let recv_error = WinDivertRecvError::try_from(err.code())?;
+            let recv_error = WinDivertRecvError::try_from(err)?;
             if let WinDivertRecvError::InsufficientBuffer = recv_error {
                 is_partial = true;
             } else {
@@ -196,7 +197,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         };
 
         let res = unsafe {
-            BOOL(sys::WinDivertRecvEx(
+            BOOL(self.core.WinDivertRecvEx(
                 self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
@@ -210,7 +211,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         .ok();
 
         if let Err(err) = res {
-            let recv_error = WinDivertRecvError::try_from(err.code())?;
+            let recv_error = WinDivertRecvError::try_from(err)?;
             return Err(WinDivertError::Recv(recv_error));
         }
 
@@ -239,11 +240,11 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             (std::ptr::null(), 0)
         };
 
-        let mut overlapped: OVERLAPPED = unsafe { std::mem::zeroed() };
-        overlapped.hEvent = Self::get_event(self._tls_idx)?;
+        let mut overlapped: OVERLAPPED = OVERLAPPED::default();
+        overlapped.hEvent = self.tls_index.get_or_init_event()?;
 
         let res = unsafe {
-            BOOL(sys::WinDivertRecvEx(
+            BOOL(self.core.WinDivertRecvEx(
                 self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
@@ -258,7 +259,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         if let Err(err) = res {
             if err.code() != ERROR_IO_PENDING.to_hresult() {
-                let recv_error = WinDivertRecvError::try_from(err.code())?;
+                let recv_error = WinDivertRecvError::try_from(err)?;
                 return Err(WinDivertError::Recv(recv_error));
             }
         }
@@ -269,8 +270,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 return Err(WinDivertError::Timeout);
             }
             _ => {
-                let recv_error =
-                    WinDivertRecvError::try_from(windows::core::Error::from_win32().code())?;
+                let recv_error = WinDivertRecvError::try_from(windows::core::Error::from_win32())?;
                 return Err(recv_error.into());
             }
         }
@@ -288,7 +288,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         let mut injected_length = 0;
 
         let res = unsafe {
-            BOOL(sys::WinDivertSend(
+            BOOL(self.core.WinDivertSend(
                 self.handle.0,
                 packet.data.as_ptr() as *const c_void,
                 packet.data.len() as u32,
@@ -331,7 +331,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         }
 
         let res = unsafe {
-            BOOL(sys::WinDivertSendEx(
+            BOOL(self.core.WinDivertSendEx(
                 self.handle.0,
                 packet_buffer.as_ptr() as *const c_void,
                 packet_buffer.len() as u32,
@@ -355,7 +355,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     /// Methods that allows to query the driver for parameters.
     pub fn get_param(&self, param: WinDivertParam) -> Result<u64, WinDivertError> {
         let mut value = 0;
-        unsafe { BOOL(sys::WinDivertGetParam(self.handle.0, param, &mut value)) }.ok()?;
+        unsafe { BOOL(WinDivertGetParam(self.handle.0, param, &mut value)) }.ok()?;
         Ok(value)
     }
 
@@ -364,13 +364,13 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         if let WinDivertParam::VersionMajor | WinDivertParam::VersionMinor = param {
             return Err(WinDivertError::Parameter(param, value));
         } else {
-            Ok(unsafe { BOOL(sys::WinDivertSetParam(self.handle.0, param, value)) }.ok()?)
+            Ok(unsafe { BOOL(WinDivertSetParam(self.handle.0, param, value)) }.ok()?)
         }
     }
 
     /// Handle close function.
     pub fn close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
-        unsafe { BOOL(sys::WinDivertClose(self.handle.0)) }.ok()?;
+        unsafe { BOOL(WinDivertClose(self.handle.0)) }.ok()?;
         match action {
             CloseAction::Uninstall => WinDivert::uninstall(),
             CloseAction::Nothing => Ok(()),
@@ -379,7 +379,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
     /// Shutdown function.
     pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> Result<(), WinDivertError> {
-        Ok(unsafe { BOOL(sys::WinDivertShutdown(self.handle.0, mode)) }.ok()?)
+        Ok(unsafe { BOOL(WinDivertShutdown(self.handle.0, mode)) }.ok()?)
     }
 }
 

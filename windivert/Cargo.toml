@@ -23,6 +23,9 @@ etherparse = "0.15"
 thiserror = "1"
 windivert-sys = { version = "0.11.0-alpha.2", path = "../windivert-sys" }
 
+[dev-dependencies]
+mockall = "0.13"
+
 [dependencies.windows]
 version = "0.58"
 features = [

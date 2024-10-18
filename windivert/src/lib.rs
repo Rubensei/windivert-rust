@@ -3,6 +3,9 @@
 Wrapper around [`windivert_sys`] ffi crate.
 */
 
+/// Module containing abstractions of core low level apis to enable mocking the blocking operations and test the remaining code
+pub(crate) mod core;
+
 /// WinDivert address data structures
 pub mod address;
 mod divert;
@@ -29,3 +32,5 @@ pub mod prelude {
     pub use crate::layer::*;
     pub use crate::packet::*;
 }
+
+pub(crate) mod test_data;
