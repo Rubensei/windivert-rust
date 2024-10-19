@@ -22,6 +22,11 @@ and this project adheres to
   capturing layers and removed from non-capturing layers.
 - Bumped `windows-rs` to 0.51.1
 - Code refactor and cleanup
+- Removed IOError variant from `WinDivertError`
+
+### Fixed
+
+- All generic OS errors will be properly handled as `WinDivertError::OsError`
 
 ## [Unreleased-sys]
 

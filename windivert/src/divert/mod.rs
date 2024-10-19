@@ -77,7 +77,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         let handle =
             unsafe { HANDLE(sys_wrapper.WinDivertOpen(filter.as_ptr(), layer, priority, flags)) };
         if handle.is_invalid() {
-            let open_err = WinDivertOpenError::try_from(std::io::Error::last_os_error())?;
+            let open_err = WinDivertOpenError::try_from(windows::core::Error::from_win32())?;
             Err(WinDivertError::from(open_err))
         } else {
             Ok(Self {
@@ -293,7 +293,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         .ok();
 
         if let Err(err) = res {
-            let send_error = WinDivertSendError::try_from(err.code())?;
+            let send_error = WinDivertSendError::try_from(err)?;
             return Err(WinDivertError::Send(send_error));
         }
 
@@ -339,7 +339,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         .ok();
 
         if let Err(err) = res {
-            let send_error = WinDivertSendError::try_from(err.code())?;
+            let send_error = WinDivertSendError::try_from(err)?;
             return Err(WinDivertError::Send(send_error));
         }
 
