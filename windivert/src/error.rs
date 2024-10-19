@@ -76,7 +76,7 @@ impl TryFrom<windows::core::Error> for WinDivertOpenError {
             WIN32_ERROR(2u32) => Ok(WinDivertOpenError::MissingSYS),
             WIN32_ERROR(5u32) => Ok(WinDivertOpenError::AccessDenied),
             WIN32_ERROR(87u32) => Ok(WinDivertOpenError::InvalidParameter),
-            WIN32_ERROR(557u32) => Ok(WinDivertOpenError::InvalidImageHash),
+            WIN32_ERROR(577u32) => Ok(WinDivertOpenError::InvalidImageHash),
             WIN32_ERROR(654u32) => Ok(WinDivertOpenError::IncompatibleVersion),
             WIN32_ERROR(1060u32) => Ok(WinDivertOpenError::MissingInstall),
             WIN32_ERROR(1257u32) => Ok(WinDivertOpenError::DriverBlocked),
