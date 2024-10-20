@@ -9,11 +9,15 @@ use mockall::automock;
 
 use windivert_sys::{address::WINDIVERT_ADDRESS, WinDivertFlags, WinDivertLayer};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct SysWrapper;
 
 #[cfg_attr(test, automock)]
 impl SysWrapper {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
+
     #[inline]
     pub(crate) unsafe fn WinDivertOpen(
         &self,

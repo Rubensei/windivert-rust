@@ -122,7 +122,7 @@ mod tests {
 
     fn setup_divert(sys_wrapper: SysWrapper) -> WinDivert<NetworkLayer> {
         WinDivert {
-            handle: HANDLE(&mut 1u8 as *mut u8 as *mut c_void),
+            handle: HANDLE(1usize as *mut c_void),
             tls_index: TlsIndex::alloc_tls().unwrap(),
             core: sys_wrapper,
             _layer: PhantomData::<NetworkLayer>,
@@ -130,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn single_packet_recv_ok() {
+    fn recv_ok() {
         let mut sys_wrapper = SysWrapper::default();
         sys_wrapper
             .expect_WinDivertRecv()
@@ -149,60 +149,54 @@ mod tests {
     }
 
     #[test]
-    fn single_packet_recv_insufficient_buffer() {
+    fn partial_recv_full() {
         let mut sys_wrapper = SysWrapper::default();
         sys_wrapper
             .expect_WinDivertRecv()
-            .returning(|_, _, _, _, _| unsafe {
+            .returning(|_, pPacket, packetLen, pRecvLen, _| unsafe {
+                let mut buffer =
+                    std::slice::from_raw_parts_mut(pPacket as *mut u8, packetLen as usize);
+                *pRecvLen = buffer.write(crate::test_data::ECHO_REQUEST).unwrap() as u32;
+                1
+            });
+        let divert = setup_divert(sys_wrapper);
+        let mut buffer = vec![0; 1500];
+        let packet = divert.partial_recv(&mut buffer[..]);
+        assert!(packet.is_ok());
+        let packet = packet.unwrap();
+        match packet {
+            PacketEither::Partial(_) => assert!(false),
+            PacketEither::Full(packet) => {
+                assert_eq!(packet.data[..], crate::test_data::ECHO_REQUEST[..]);
+            }
+        };
+    }
+
+    #[test]
+    fn partial_recv_partial() {
+        let mut sys_wrapper = SysWrapper::default();
+        sys_wrapper
+            .expect_WinDivertRecv()
+            .returning(|_, pPacket, packetLen, pRecvLen, _| unsafe {
+                let mut buffer =
+                    std::slice::from_raw_parts_mut(pPacket as *mut u8, packetLen as usize);
+                *pRecvLen = buffer.write(crate::test_data::ECHO_REQUEST).unwrap() as u32;
                 SetLastError(windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER);
                 0
             });
         let divert = setup_divert(sys_wrapper);
-        let mut buffer = vec![0; 1500];
-        let packet = divert.recv(&mut buffer[..]);
-        assert!(packet.is_err());
-        let error = packet.unwrap_err();
-        assert!(matches!(
-            error,
-            WinDivertError::Recv(WinDivertRecvError::InsufficientBuffer)
-        ));
-    }
-
-    #[test]
-    fn single_packet_recv_no_data() {
-        let mut sys_wrapper = SysWrapper::default();
-        sys_wrapper
-            .expect_WinDivertRecv()
-            .returning(|_, _, _, _, _| unsafe {
-                SetLastError(windows::Win32::Foundation::ERROR_NO_DATA);
-                0
-            });
-        let divert = setup_divert(sys_wrapper);
-        let mut buffer = vec![0; 1500];
-        let packet = divert.recv(&mut buffer[..]);
-        assert!(packet.is_err());
-        let error = packet.unwrap_err();
-        assert!(matches!(
-            error,
-            WinDivertError::Recv(WinDivertRecvError::NoData)
-        ));
-    }
-
-    #[test]
-    fn single_packet_recv_sys_error() {
-        let mut sys_wrapper = SysWrapper::default();
-        sys_wrapper
-            .expect_WinDivertRecv()
-            .returning(|_, _, _, _, _| unsafe {
-                SetLastError(windows::Win32::Foundation::ERROR_ACCESS_DENIED);
-                0
-            });
-        let divert = setup_divert(sys_wrapper);
-        let mut buffer = vec![0; 1500];
-        let packet = divert.recv(&mut buffer[..]);
-        assert!(packet.is_err());
-        eprintln!("{:?}", packet);
-        let error = packet.unwrap_err();
-        assert!(matches!(error, WinDivertError::OSError(_)));
+        let mut buffer = vec![0; crate::test_data::ECHO_REQUEST.len() - 10];
+        let packet = divert.partial_recv(&mut buffer[..]);
+        assert!(packet.is_ok());
+        let packet = packet.unwrap();
+        match packet {
+            PacketEither::Full(_) => assert!(false),
+            PacketEither::Partial(partial_packet) => {
+                assert_eq!(
+                    partial_packet.data[..],
+                    crate::test_data::ECHO_REQUEST[..partial_packet.data.len()]
+                );
+            }
+        };
     }
 }

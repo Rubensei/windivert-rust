@@ -25,6 +25,7 @@ windivert-sys = { version = "0.11.0-alpha.2", path = "../windivert-sys" }
 
 [dev-dependencies]
 mockall = "0.13"
+serial_test = "3"
 
 [dependencies.windows]
 version = "0.58"
