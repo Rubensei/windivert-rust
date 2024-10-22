@@ -48,7 +48,7 @@ extern "C" {
         layer: WinDivertLayer,
         priority: i16,
         flags: WinDivertFlags,
-    ) -> *mut core::ffi::c_void;
+    ) -> std::os::windows::raw::HANDLE;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_recv)
     pub fn WinDivertRecv(

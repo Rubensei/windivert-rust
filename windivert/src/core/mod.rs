@@ -25,7 +25,7 @@ impl SysWrapper {
         layer: WinDivertLayer,
         priority: i16,
         flags: WinDivertFlags,
-    ) -> *mut core::ffi::c_void {
+    ) -> std::os::windows::raw::HANDLE {
         windivert_sys::WinDivertOpen(filter, layer, priority, flags)
     }
 

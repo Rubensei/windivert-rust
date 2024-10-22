@@ -160,3 +160,307 @@ impl TryFrom<WIN32_ERROR> for WinDivertSendError {
         WinDivertSendError::try_from(windows::core::Error::from_hresult(error.to_hresult()))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::ffi::c_void;
+
+    use serial_test::serial;
+    use windivert_sys::WinDivertFlags;
+    use windows::Win32::Foundation::{SetLastError, WIN32_ERROR};
+
+    use crate::core::MockSysWrapper as SysWrapper;
+    use crate::prelude::*;
+
+    #[test]
+    #[serial]
+    fn test_error_open_missing_sys() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(2u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Open(WinDivertOpenError::MissingSYS),
+        ))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_open_access_denied() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(5u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Open(WinDivertOpenError::AccessDenied),
+        ))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_open_invalid_parameter() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(87u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Open(WinDivertOpenError::InvalidParameter),
+        ))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_open_invalid_image_hash() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(577u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Open(WinDivertOpenError::InvalidImageHash),
+        ))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_open_incompatible_version() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(654u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Open(WinDivertOpenError::IncompatibleVersion),
+        ))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_open_missing_install() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(1060u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Open(WinDivertOpenError::MissingInstall),
+        ))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_open_driver_blocked() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(1257u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Open(WinDivertOpenError::DriverBlocked),
+        ))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_open_base_filtering_engine_disabled() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(1753u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Open(WinDivertOpenError::BaseFilteringEngineDisabled),
+        ))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_open_sys_error() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(1u32));
+                    std::ptr::null_mut::<c_void>()
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_err());
+        let error = divert.unwrap_err();
+        assert!(matches!(error, WinDivertError::OSError(_),))
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_recv_insufficient_buffer() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| 1usize as *mut c_void);
+            sys_wrapper
+                .expect_WinDivertRecv()
+                .returning(|_, _, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(122u32));
+                    0
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_ok());
+        let divert = divert.unwrap();
+        let mut buffer = vec![0; 1500];
+        let packet = divert.recv(&mut buffer[..]);
+        assert!(packet.is_err());
+        let error = packet.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Recv(WinDivertRecvError::InsufficientBuffer)
+        ));
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_recv_no_data() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| 1usize as *mut c_void);
+            sys_wrapper
+                .expect_WinDivertRecv()
+                .returning(|_, _, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(232u32));
+                    0
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_ok());
+        let divert = divert.unwrap();
+        let mut buffer = vec![0; 1500];
+        let packet = divert.recv(&mut buffer[..]);
+        assert!(packet.is_err());
+        let error = packet.unwrap_err();
+        assert!(matches!(
+            error,
+            WinDivertError::Recv(WinDivertRecvError::NoData)
+        ));
+    }
+
+    #[test]
+    #[serial]
+    fn test_error_recv_sys_error() {
+        let ctx = SysWrapper::new_context();
+        ctx.expect().returning(|| {
+            let mut sys_wrapper = SysWrapper::default();
+            sys_wrapper
+                .expect_WinDivertOpen()
+                .returning(|_, _, _, _| 1usize as *mut c_void);
+            sys_wrapper
+                .expect_WinDivertRecv()
+                .returning(|_, _, _, _, _| unsafe {
+                    SetLastError(WIN32_ERROR(2u32));
+                    0
+                });
+            sys_wrapper
+        });
+        let divert = WinDivert::network("false", 0, WinDivertFlags::default());
+        assert!(divert.is_ok());
+        let divert = divert.unwrap();
+        let mut buffer = vec![0; 1500];
+        let packet = divert.recv(&mut buffer[..]);
+        assert!(packet.is_err());
+        eprintln!("{:?}", packet);
+        let error = packet.unwrap_err();
+        assert!(matches!(error, WinDivertError::OSError(_)));
+    }
+}
