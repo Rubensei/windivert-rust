@@ -3,31 +3,14 @@ use std::{
     ffi::{c_void, CString},
     marker::PhantomData,
     mem::MaybeUninit,
-    os::windows::ffi::OsStrExt,
     path::Path,
 };
 
-use windows::{
-    core::{w, PCWSTR},
-    Win32::{
-        Foundation::{
-            BOOL, ERROR_IO_PENDING, ERROR_SERVICE_ALREADY_RUNNING, ERROR_SERVICE_EXISTS, HANDLE,
-            WAIT_ABANDONED, WAIT_OBJECT_0, WAIT_TIMEOUT,
-        },
-        System::{
-            Registry::{
-                RegCloseKey, RegCreateKeyExW, RegSetValueExW, HKEY, HKEY_LOCAL_MACHINE,
-                KEY_SET_VALUE, REG_DWORD, REG_OPTION_VOLATILE, REG_SZ,
-            },
-            Services::{
-                CloseServiceHandle, ControlService, CreateServiceW, DeleteService, OpenSCManagerW,
-                OpenServiceW, StartServiceW, SC_HANDLE, SC_MANAGER_ALL_ACCESS, SERVICE_ALL_ACCESS,
-                SERVICE_CONTROL_STOP, SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL,
-                SERVICE_KERNEL_DRIVER, SERVICE_STATUS,
-            },
-            Threading::{CreateMutexW, ReleaseMutex, WaitForSingleObject, INFINITE},
-            IO::{GetOverlappedResult, OVERLAPPED},
-        },
+use windows::Win32::{
+    Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, WAIT_OBJECT_0, WAIT_TIMEOUT},
+    System::{
+        Threading::WaitForSingleObject,
+        IO::{GetOverlappedResult, OVERLAPPED},
     },
 };
 
@@ -42,7 +25,9 @@ use crate::core::MockSysWrapper as SysWrapper;
 #[cfg(not(test))]
 use crate::core::SysWrapper;
 
-use crate::core::winapi::tls::TlsIndex;
+use crate::core::winapi::{
+    mutex::InstallMutex, sc_manager::ScManager, service::Service, tls::TlsIndex,
+};
 use crate::layer;
 use crate::prelude::*;
 
@@ -382,155 +367,31 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 impl WinDivert<()> {
     /// Maximum number of packets that can be captured/sent in a single batched operation
     pub const MAX_BATCH: u8 = windivert_sys::WINDIVERT_BATCH_MAX as u8;
-    const WINDIVERT_DEVICE_NAME: PCWSTR = w!("WinDivert");
 
     /// Method to manually install WinDivert driver.
     /// This method allow installing a sys file not located on the same folder as the dll
     pub fn install(path: &Path) -> Result<(), WinDivertError> {
-        let path_str = path
-            .as_os_str()
-            .encode_wide()
-            .into_iter()
-            .chain([0])
-            .collect::<Vec<u16>>();
-        let mut result = Ok(());
+        let mut mutex = InstallMutex::new()?;
+        let _guard = mutex.lock()?;
 
-        let result = unsafe {
-            let mutex = {
-                let mutex = CreateMutexW(None, false, w!("WinDivertDriverInstallMutex"))?;
+        let manager = ScManager::new()?;
 
-                match WaitForSingleObject(mutex, INFINITE) {
-                    WAIT_ABANDONED | WAIT_OBJECT_0 => {}
-                    _ => return Err(windows::core::Error::from_win32().into()),
-                }
+        let service = Service::new(&manager, path)?;
 
-                mutex
-            };
+        service.register_event_source()?;
 
-            if let Ok(manager) = OpenSCManagerW(None, None, SC_MANAGER_ALL_ACCESS) {
-                // Check if service exists
-                let mut service: Option<SC_HANDLE> =
-                    OpenServiceW(manager, Self::WINDIVERT_DEVICE_NAME, SERVICE_ALL_ACCESS).ok();
-                // Create service if not exists
-                if service.is_none() {
-                    match CreateServiceW(
-                        manager,
-                        Self::WINDIVERT_DEVICE_NAME,
-                        Self::WINDIVERT_DEVICE_NAME,
-                        SERVICE_ALL_ACCESS,
-                        SERVICE_KERNEL_DRIVER,
-                        SERVICE_DEMAND_START,
-                        SERVICE_ERROR_NORMAL,
-                        PCWSTR::from_raw(path_str.as_ptr()),
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                    ) {
-                        Ok(service_handle) => service = Some(service_handle),
-                        Err(err) => {
-                            if err.code() == ERROR_SERVICE_EXISTS.to_hresult() {
-                                service = match OpenServiceW(
-                                    manager,
-                                    Self::WINDIVERT_DEVICE_NAME,
-                                    SERVICE_ALL_ACCESS,
-                                ) {
-                                    Ok(service) => Some(service),
-                                    Err(err) => {
-                                        result = Err(err.into());
-                                        None
-                                    }
-                                }
-                            }
-                        }
-                    };
-                }
+        service.start_and_mark_for_deletion()?;
 
-                // Register event logging and start service
-                if let Some(service) = service.as_ref() {
-                    register_event_source(&path)?;
-
-                    result = match StartServiceW(*service, None) {
-                        Ok(_) => Ok(()),
-                        Err(err) => {
-                            if err.code() == ERROR_SERVICE_ALREADY_RUNNING.to_hresult() {
-                                Ok(())
-                            } else {
-                                Err(err.into())
-                            }
-                        }
-                    };
-
-                    if result.is_ok() {
-                        DeleteService(*service)?;
-                    }
-                }
-
-                CloseServiceHandle(manager).expect("Manager can't be invalid");
-            }
-
-            ReleaseMutex(mutex).expect("Mutex is always owned by the current thread at this point");
-            result
-        };
-        result
+        Ok(())
     }
 
     /// Method that tries to uninstall WinDivert driver.
     pub fn uninstall() -> Result<(), WinDivertError> {
-        let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
-        unsafe {
-            let manager = OpenSCManagerW(None, None, SC_MANAGER_ALL_ACCESS)?;
-            let service =
-                OpenServiceW(manager, Self::WINDIVERT_DEVICE_NAME, SC_MANAGER_ALL_ACCESS)?;
-            ControlService(service, SERVICE_CONTROL_STOP, status)?;
-            CloseServiceHandle(service)?;
-            CloseServiceHandle(manager)?;
-        }
+        let manager = ScManager::new()?;
+        let service = Service::open(&manager)?;
+        service.stop()?;
         Ok(())
     }
-}
-
-fn register_event_source<'a>(path: &Path) -> Result<(), windows::core::Error> {
-    unsafe {
-        let key = {
-            let mut key: MaybeUninit<HKEY> = MaybeUninit::uninit();
-            let result = RegCreateKeyExW(
-                HKEY_LOCAL_MACHINE,
-                w!("System\\CurrentControlSet\\Services\\EventLog\\System\\WinDivert"),
-                0,
-                None,
-                REG_OPTION_VOLATILE,
-                KEY_SET_VALUE,
-                None,
-                key.as_mut_ptr(),
-                None,
-            );
-            if let Err(err) = result.ok() {
-                return Err(err);
-            }
-
-            key.assume_init()
-        };
-
-        let _ = RegSetValueExW(
-            key,
-            w!("EventMessageFile"),
-            0,
-            REG_SZ,
-            Some(path.as_os_str().as_encoded_bytes()),
-        );
-        let _ = RegSetValueExW(
-            key,
-            w!("TypesSupported"),
-            0,
-            REG_DWORD,
-            Some(&7u32.to_le_bytes()),
-        );
-
-        RegCloseKey(key).ok()?;
-    }
-    Ok(())
 }
 
 /// Action parameter for  [`WinDivert::close()`](`fn@WinDivert::close`)
