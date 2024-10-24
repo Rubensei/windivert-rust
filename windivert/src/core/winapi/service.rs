@@ -7,7 +7,10 @@ use std::{
 use windows::{
     core::{w, PCWSTR},
     Win32::{
-        Foundation::{ERROR_SERVICE_DOES_NOT_EXIST, ERROR_SERVICE_EXISTS, WIN32_ERROR},
+        Foundation::{
+            ERROR_SERVICE_CANNOT_ACCEPT_CTRL, ERROR_SERVICE_DOES_NOT_EXIST, ERROR_SERVICE_EXISTS,
+            ERROR_SERVICE_NOT_ACTIVE, WIN32_ERROR,
+        },
         System::{
             Registry::{
                 RegCloseKey, RegCreateKeyExW, RegSetValueExW, HKEY, HKEY_LOCAL_MACHINE,
@@ -21,6 +24,8 @@ use windows::{
         },
     },
 };
+
+use crate::error;
 
 use super::sc_manager::ScManager;
 
@@ -170,8 +175,20 @@ impl Service {
 
     pub fn stop(&self) -> Result<(), windows::core::Error> {
         unsafe {
-            let mut _status: MaybeUninit<SERVICE_STATUS> = MaybeUninit::uninit();
-            ControlService(self.handle, SERVICE_CONTROL_STOP, _status.as_mut_ptr())
+            match ControlService(self.handle, SERVICE_CONTROL_STOP, std::ptr::null_mut()) {
+                Err(error) => {
+                    // The only scenario when a ControlService(SERVICE_CONTROL_STOP)  raises ERROR_SERVICE_CANNOT_ACCEPT_CTRL is if the service is STOP_PENDING
+                    // It's safe to treat it as a success due to how this method is used
+                    if let Some(ERROR_SERVICE_NOT_ACTIVE | ERROR_SERVICE_CANNOT_ACCEPT_CTRL) =
+                        WIN32_ERROR::from_error(&error)
+                    {
+                        Ok(())
+                    } else {
+                        Err(error)
+                    }
+                }
+                _ => Ok(()),
+            }
         }
     }
 }
