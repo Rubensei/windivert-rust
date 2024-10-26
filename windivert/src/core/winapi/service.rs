@@ -9,7 +9,7 @@ use windows::{
     Win32::{
         Foundation::{
             ERROR_SERVICE_CANNOT_ACCEPT_CTRL, ERROR_SERVICE_DOES_NOT_EXIST, ERROR_SERVICE_EXISTS,
-            ERROR_SERVICE_NOT_ACTIVE, WIN32_ERROR,
+            ERROR_SERVICE_MARKED_FOR_DELETE, ERROR_SERVICE_NOT_ACTIVE, WIN32_ERROR,
         },
         System::{
             Registry::{
@@ -30,12 +30,11 @@ use crate::error;
 use super::sc_manager::ScManager;
 
 #[derive(Debug)]
-pub(crate) struct Service {
+pub(crate) struct WinDivertDriverService {
     handle: SC_HANDLE,
-    path: PathBuf,
 }
 
-impl Service {
+impl WinDivertDriverService {
     const WINDIVERT_DEVICE_NAME: PCWSTR = w!("WinDivert");
 
     pub fn open(manager: &ScManager) -> Result<Self, windows::core::Error> {
@@ -46,37 +45,10 @@ impl Service {
                 SERVICE_ALL_ACCESS,
             )?
         };
-        Ok(Self {
-            handle,
-            path: PathBuf::with_capacity(0),
-        })
+        Ok(Self { handle })
     }
 
-    pub fn new(manager: &ScManager, path: &Path) -> Result<Self, windows::core::Error> {
-        let handle = unsafe {
-            match OpenServiceW(
-                SC_HANDLE::from(manager),
-                Self::WINDIVERT_DEVICE_NAME,
-                SERVICE_ALL_ACCESS,
-            ) {
-                Ok(service) => service,
-                Err(error) => {
-                    if let Some(ERROR_SERVICE_DOES_NOT_EXIST) = WIN32_ERROR::from_error(&error) {
-                        Self::create_service(manager, path)?
-                    } else {
-                        return Err(error);
-                    }
-                }
-            }
-        };
-
-        Ok(Self {
-            handle,
-            path: path.to_path_buf(),
-        })
-    }
-
-    fn create_service(manager: &ScManager, path: &Path) -> Result<SC_HANDLE, windows::core::Error> {
+    pub fn install(manager: &ScManager, path: &Path) -> Result<Self, windows::core::Error> {
         let path_str = path
             .as_os_str()
             .encode_wide()
@@ -84,7 +56,7 @@ impl Service {
             .chain([0])
             .collect::<Vec<u16>>();
 
-        unsafe {
+        let handle = unsafe {
             match CreateServiceW(
                 SC_HANDLE::from(manager),
                 Self::WINDIVERT_DEVICE_NAME,
@@ -113,10 +85,11 @@ impl Service {
                     }
                 }
             }
-        }
+        }?;
+        Ok(Self { handle })
     }
 
-    pub fn register_event_source(&self) -> Result<(), windows::core::Error> {
+    pub fn register_event_source(&self, path: &Path) -> Result<(), windows::core::Error> {
         unsafe {
             let key = {
                 let mut key: MaybeUninit<HKEY> = MaybeUninit::uninit();
@@ -141,7 +114,7 @@ impl Service {
                 w!("EventMessageFile"),
                 0,
                 REG_SZ,
-                Some(self.path.as_os_str().as_encoded_bytes()),
+                Some(path.as_os_str().as_encoded_bytes()),
             )
             .ok()?;
             RegSetValueExW(
@@ -158,18 +131,27 @@ impl Service {
         Ok(())
     }
 
-    pub fn start_and_mark_for_deletion(&self) -> Result<(), windows::core::Error> {
+    pub fn start(&self) -> Result<(), windows::core::Error> {
         unsafe {
-            match StartServiceW(self.handle, None) {
-                Ok(_) => DeleteService(self.handle),
-                Err(error) => {
-                    if let Some(ERROR_SERVICE_ALREADY_RUNNING) = WIN32_ERROR::from_error(&error) {
-                        Ok(())
-                    } else {
-                        Err(error)
-                    }
+            StartServiceW(self.handle, None).or_else(|error| {
+                if let Some(ERROR_SERVICE_ALREADY_RUNNING) = WIN32_ERROR::from_error(&error) {
+                    Ok(())
+                } else {
+                    Err(error)
                 }
-            }
+            })
+        }
+    }
+
+    pub fn mark_for_deletion(&self) -> Result<(), windows::core::Error> {
+        unsafe {
+            DeleteService(self.handle).or_else(|error| {
+                if let Some(ERROR_SERVICE_MARKED_FOR_DELETE) = WIN32_ERROR::from_error(&error) {
+                    Ok(())
+                } else {
+                    Err(error)
+                }
+            })
         }
     }
 
@@ -193,13 +175,13 @@ impl Service {
     }
 }
 
-impl From<Service> for SC_HANDLE {
-    fn from(value: Service) -> Self {
+impl From<WinDivertDriverService> for SC_HANDLE {
+    fn from(value: WinDivertDriverService) -> Self {
         value.handle
     }
 }
 
-impl Drop for Service {
+impl Drop for WinDivertDriverService {
     fn drop(&mut self) {
         unsafe { CloseServiceHandle(self.handle).expect("Handle can't be invalid") }
     }

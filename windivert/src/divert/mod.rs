@@ -7,7 +7,10 @@ use std::{
 };
 
 use windows::Win32::{
-    Foundation::{BOOL, ERROR_IO_PENDING, HANDLE, WAIT_OBJECT_0, WAIT_TIMEOUT},
+    Foundation::{
+        BOOL, ERROR_IO_PENDING, ERROR_SERVICE_DOES_NOT_EXIST, HANDLE, WAIT_OBJECT_0, WAIT_TIMEOUT,
+        WIN32_ERROR,
+    },
     System::{
         Threading::WaitForSingleObject,
         IO::{GetOverlappedResult, OVERLAPPED},
@@ -26,7 +29,7 @@ use crate::core::MockSysWrapper as SysWrapper;
 use crate::core::SysWrapper;
 
 use crate::core::winapi::{
-    mutex::InstallMutex, sc_manager::ScManager, service::Service, tls::TlsIndex,
+    mutex::InstallMutex, sc_manager::ScManager, service::WinDivertDriverService, tls::TlsIndex,
 };
 use crate::layer;
 use crate::prelude::*;
@@ -376,11 +379,14 @@ impl WinDivert<()> {
 
         let manager = ScManager::new()?;
 
-        let service = Service::new(&manager, path)?;
-
-        service.register_event_source()?;
-
-        service.start_and_mark_for_deletion()?;
+        if let Err(error) = WinDivertDriverService::open(&manager) {
+            if let Some(ERROR_SERVICE_DOES_NOT_EXIST) = WIN32_ERROR::from_error(&error) {
+                let service = WinDivertDriverService::install(&manager, path)?;
+                service.register_event_source(path)?;
+                service.start()?;
+                service.mark_for_deletion()?;
+            }
+        }
 
         Ok(())
     }
@@ -388,7 +394,7 @@ impl WinDivert<()> {
     /// Method that tries to uninstall WinDivert driver.
     pub fn uninstall() -> Result<(), WinDivertError> {
         let manager = ScManager::new()?;
-        let service = Service::open(&manager)?;
+        let service = WinDivertDriverService::open(&manager)?;
         service.stop()?;
         Ok(())
     }
