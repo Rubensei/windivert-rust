@@ -6,15 +6,8 @@ use std::{
     path::Path,
 };
 
-use windows::Win32::{
-    Foundation::{
-        BOOL, ERROR_IO_PENDING, ERROR_SERVICE_DOES_NOT_EXIST, HANDLE, WAIT_OBJECT_0, WAIT_TIMEOUT,
-        WIN32_ERROR,
-    },
-    System::{
-        Threading::WaitForSingleObject,
-        IO::{GetOverlappedResult, OVERLAPPED},
-    },
+use windows::Win32::Foundation::{
+    BOOL, ERROR_IO_PENDING, ERROR_SERVICE_DOES_NOT_EXIST, HANDLE, WIN32_ERROR,
 };
 
 use windivert_sys::{
@@ -27,6 +20,12 @@ use crate::core::MockSysWrapper as SysWrapper;
 
 #[cfg(not(test))]
 use crate::core::SysWrapper;
+
+#[cfg(test)]
+use crate::core::winapi::overlapped::MockOverlapped as Overlapped;
+
+#[cfg(not(test))]
+use crate::core::winapi::overlapped::Overlapped;
 
 use crate::core::winapi::{
     mutex::InstallMutex, sc_manager::ScManager, service::WinDivertDriverService, tls::TlsIndex,
@@ -211,8 +210,6 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         packet_count: u8,
         timeout_ms: u32,
     ) -> Result<(Option<&'a [u8]>, Vec<WINDIVERT_ADDRESS>), WinDivertError> {
-        let mut packet_length = 0;
-
         let mut addr_len = ADDR_SIZE as u32 * packet_count as u32;
         let mut addr_buffer: Vec<WINDIVERT_ADDRESS> =
             vec![WINDIVERT_ADDRESS::default(); packet_count as usize];
@@ -223,19 +220,18 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             (std::ptr::null(), 0)
         };
 
-        let mut overlapped: OVERLAPPED = OVERLAPPED::default();
-        overlapped.hEvent = self.tls_index.get_or_init_event()?;
+        let mut overlapped = Overlapped::init(&self.handle, &self.tls_index)?;
 
         let res = unsafe {
             BOOL(self.core.WinDivertRecvEx(
                 self.handle.0,
                 buffer_ptr as *mut c_void,
                 buffer_len as u32,
-                &mut packet_length,
+                std::ptr::null_mut(),
                 0,
                 addr_buffer.as_mut_ptr(),
                 &mut addr_len,
-                &mut overlapped as *mut OVERLAPPED as *mut c_void,
+                overlapped.as_raw_mut(),
             ))
         }
         .ok();
@@ -247,18 +243,11 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             }
         }
 
-        match unsafe { WaitForSingleObject(overlapped.hEvent, timeout_ms) } {
-            WAIT_OBJECT_0 => {}
-            WAIT_TIMEOUT => {
-                return Err(WinDivertError::Timeout);
-            }
-            _ => {
-                let recv_error = WinDivertRecvError::try_from(windows::core::Error::from_win32())?;
-                return Err(recv_error.into());
-            }
-        }
+        let Some(_) = overlapped.wait_for_object(timeout_ms)? else {
+            return Err(WinDivertError::Timeout);
+        };
 
-        unsafe { GetOverlappedResult(self.handle, &overlapped, &mut packet_length, false) }?;
+        let packet_length = overlapped.get_result()?;
 
         addr_buffer.truncate((addr_len / ADDR_SIZE as u32) as usize);
         Ok((
