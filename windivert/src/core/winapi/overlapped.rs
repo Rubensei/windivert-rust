@@ -57,4 +57,8 @@ impl Overlapped {
         unsafe { GetOverlappedResult(self.handle, &self.inner, &mut written_bytes, false)? };
         Ok(written_bytes)
     }
+
+    pub fn cancel(self) -> Result<(), windows::core::Error> {
+        unsafe { CancelIo(self.handle) }
+    }
 }

@@ -238,6 +238,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
         if let Err(err) = res {
             if err.code() != ERROR_IO_PENDING.to_hresult() {
+                overlapped.cancel()?;
                 let recv_error = WinDivertRecvError::try_from(err)?;
                 return Err(recv_error.into());
             }
