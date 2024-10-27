@@ -27,20 +27,9 @@ impl Overlapped {
                 inner.hEvent = tls_index.get_or_init_event()?;
                 inner
             },
-            handle: unsafe {
-                let mut copy = HANDLE::default();
-                let current_process = GetCurrentProcess();
-                DuplicateHandle(
-                    current_process,
-                    *handle,
-                    current_process,
-                    &mut copy,
-                    0,
-                    false,
-                    DUPLICATE_SAME_ACCESS,
-                )?;
-                copy
-            },
+            // SAFETY
+            // This is safe since the cloned handle is only used internally during a single overlapped io that will block the thread
+            handle: handle.clone(),
         })
     }
 
@@ -49,7 +38,7 @@ impl Overlapped {
     }
 
     /// Methods that waits until the overlapped event is signaled
-    /// It will return Some if the operation completed, and None if the timeout expired
+    /// It will return `Some` if the operation completed, and `None` if the timeout expired
     pub fn wait_for_object(&self, timeout_ms: u32) -> Result<Option<()>, windows::core::Error> {
         unsafe {
             match WaitForSingleObject(self.inner.hEvent, timeout_ms) {
