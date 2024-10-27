@@ -1,6 +1,7 @@
 # WinDivert 2 Rust Wrapper
 
 [![GitHub](https://img.shields.io/github/license/Rubensei/windivert-rust?color=blue)](https://raw.githubusercontent.com/Rubensei/windivert-rust/master/LICENSE)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FRubensei%2Fwindivert-rust.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FRubensei%2Fwindivert-rust?ref=badge_shield)
 
 **Note**: This is a work in process, so the crates won't follow semantic
 versioning until 1.0.0 release, so any version change below 1.0.0 might
@@ -48,3 +49,7 @@ To be able to build `windivert-sys` you require WinDivert library files:
 on the same folder. Since the dll lib & sys files come in the same folder when
 downloading from [official web](https://www.reqrypt.org/windivert.html)
 `windivert-sys` will search for it on the path provided with `WINDIVERT_PATH`.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FRubensei%2Fwindivert-rust.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FRubensei%2Fwindivert-rust?ref=badge_large)
