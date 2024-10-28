@@ -37,7 +37,7 @@ impl Overlapped {
         &mut self.inner as *mut OVERLAPPED as *mut c_void
     }
 
-    /// Methods that waits until the overlapped event is signaled
+    /// Method that waits until the overlapped event is signaled
     /// It will return `Some` if the operation completed, and `None` if the timeout expired
     pub fn wait_for_object(&self, timeout_ms: u32) -> Result<Option<()>, windows::core::Error> {
         unsafe {
@@ -47,7 +47,10 @@ impl Overlapped {
                     CancelIo(self.handle)?;
                     Ok(None)
                 }
-                _ => Err(windows::core::Error::from_win32()),
+                _ => {
+                    CancelIo(self.handle)?;
+                    Err(windows::core::Error::from_win32())
+                }
             }
         }
     }

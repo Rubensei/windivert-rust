@@ -121,6 +121,8 @@ mod tests {
     use serial_test::serial;
     use windows::Win32::Foundation::SetLastError;
 
+    const EX_TEST_PACKET_COUNT: u8 = 5;
+
     fn setup_divert(sys_wrapper: SysWrapper) -> WinDivert<NetworkLayer> {
         WinDivert {
             handle: HANDLE(1usize as *mut c_void),
@@ -222,13 +224,12 @@ mod tests {
                 1
             },
         );
-        let packet_count: u8 = 5;
         let divert = setup_divert(sys_wrapper);
-        let mut buffer = vec![0; 1500 * packet_count as usize];
-        let packets = divert.recv_ex(&mut buffer[..], packet_count);
+        let mut buffer = vec![0; 1500 * EX_TEST_PACKET_COUNT as usize];
+        let packets = divert.recv_ex(&mut buffer[..], EX_TEST_PACKET_COUNT);
         assert!(packets.is_ok());
         let packets = packets.unwrap();
-        assert_eq!(packet_count as usize, packets.len());
+        assert_eq!(EX_TEST_PACKET_COUNT as usize, packets.len());
         for packet in packets.iter() {
             assert_eq!(packet.data[..], crate::test_data::ECHO_REQUEST[..]);
         }
@@ -236,6 +237,7 @@ mod tests {
 
     #[test]
     #[serial]
+    #[allow(non_snake_case)]
     fn recv_wait_ok() {
         let overlapped_ctx = Overlapped::init_context();
         overlapped_ctx.expect().returning(|_, _| {
@@ -270,5 +272,53 @@ mod tests {
         assert!(packet.is_ok());
         let packet = packet.unwrap();
         assert_eq!(packet.data[..], crate::test_data::ECHO_REQUEST[..]);
+    }
+
+    #[test]
+    #[serial]
+    #[allow(non_snake_case)]
+    fn recv_ex_wait_ok() {
+        let overlapped_ctx = Overlapped::init_context();
+        overlapped_ctx.expect().returning(|_, _| {
+            let mut overlapped = Overlapped::default();
+            overlapped
+                .expect_as_raw_mut()
+                .returning(|| (&mut 1u8 as *mut u8 as *mut c_void));
+            overlapped
+                .expect_wait_for_object()
+                .returning(|_| Ok(Some(())));
+            overlapped.expect_get_result().returning(|| {
+                Ok(crate::test_data::ECHO_REQUEST.len() as u32 * EX_TEST_PACKET_COUNT as u32)
+            });
+            Ok(overlapped)
+        });
+        let mut sys_wrapper = SysWrapper::default();
+        sys_wrapper.expect_WinDivertRecvEx().returning(
+            |_, pPacket, packetLen, _, _, pAddr, pAddrLen, _| unsafe {
+                let packet_count = *pAddrLen as usize / size_of::<WINDIVERT_ADDRESS>();
+                assert!(packetLen as usize > packet_count * crate::test_data::ECHO_REQUEST.len());
+                let buffer = std::slice::from_raw_parts_mut(pPacket as *mut u8, packetLen as usize);
+                let addresses = std::slice::from_raw_parts_mut(pAddr, packet_count);
+                let mut index = 0;
+                for address in &mut addresses[..] {
+                    *address = WINDIVERT_ADDRESS::default();
+
+                    buffer[index..index + crate::test_data::ECHO_REQUEST.len()]
+                        .copy_from_slice(crate::test_data::ECHO_REQUEST);
+                    index += crate::test_data::ECHO_REQUEST.len();
+                }
+                SetLastError(ERROR_IO_PENDING);
+                0
+            },
+        );
+        let divert = setup_divert(sys_wrapper);
+        let mut buffer = vec![0; 1500 * EX_TEST_PACKET_COUNT as usize];
+        let packets = divert.recv_wait_ex(&mut buffer[..], EX_TEST_PACKET_COUNT, 100);
+        assert!(packets.is_ok());
+        let packets = packets.unwrap();
+        assert_eq!(EX_TEST_PACKET_COUNT as usize, packets.len());
+        for packet in packets.iter() {
+            assert_eq!(packet.data[..], crate::test_data::ECHO_REQUEST[..]);
+        }
     }
 }
