@@ -321,4 +321,54 @@ mod tests {
             assert_eq!(packet.data[..], crate::test_data::ECHO_REQUEST[..]);
         }
     }
+
+    #[test]
+    fn send_ok() {
+        let mut sys_wrapper = SysWrapper::default();
+        sys_wrapper
+            .expect_WinDivertSend()
+            .returning(|_, pPacket, packetLen, pSendLen, _| unsafe {
+                let buffer = std::slice::from_raw_parts(pPacket as *const u8, packetLen as usize);
+                assert_eq!(buffer, crate::test_data::ECHO_REQUEST);
+                *pSendLen = packetLen;
+                1
+            });
+        let divert = setup_divert(sys_wrapper);
+        let packet = WinDivertPacket {
+            address: unsafe { WinDivertAddress::<NetworkLayer>::new() },
+            data: Cow::Borrowed(crate::test_data::ECHO_REQUEST),
+        };
+        let result = divert.send(&packet);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), crate::test_data::ECHO_REQUEST.len() as u32);
+    }
+
+    #[test]
+    fn send_ex_ok() {
+        let mut sys_wrapper = SysWrapper::default();
+        sys_wrapper.expect_WinDivertSendEx().returning(
+            |_, pPacket, packetLen, pSendLen, _, _, _, _| unsafe {
+                let buffer = std::slice::from_raw_parts(pPacket as *const u8, packetLen as usize);
+                assert_eq!(
+                    buffer,
+                    crate::test_data::ECHO_REQUEST.repeat(EX_TEST_PACKET_COUNT as usize)
+                );
+                *pSendLen = packetLen;
+                1
+            },
+        );
+        let divert = setup_divert(sys_wrapper);
+        let packets: Vec<_> = (0..EX_TEST_PACKET_COUNT)
+            .map(|_| WinDivertPacket {
+                address: unsafe { WinDivertAddress::<NetworkLayer>::new() },
+                data: Cow::Borrowed(crate::test_data::ECHO_REQUEST),
+            })
+            .collect();
+        let result = divert.send_ex(&packets);
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            (crate::test_data::ECHO_REQUEST.len() * EX_TEST_PACKET_COUNT as usize) as u32
+        );
+    }
 }
