@@ -115,14 +115,14 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
     pub(crate) fn internal_partial_recv<'a>(
         &self,
-        buffer: Option<&'a mut [u8]>,
+        mut buffer: Option<&'a mut [u8]>,
     ) -> Result<PacketEither<'a, L>, WinDivertError> {
         let mut packet_length = 0;
         let mut addr = MaybeUninit::uninit();
-        let (buffer_ptr, buffer_len) = if let Some(ref buffer) = buffer {
-            (buffer.as_ptr(), buffer.len())
+        let (buffer_ptr, buffer_len) = if let Some(buffer) = buffer.as_mut() {
+            (buffer.as_mut_ptr(), buffer.len())
         } else {
-            (std::ptr::null(), 0)
+            (std::ptr::null_mut(), 0)
         };
 
         let res = unsafe {

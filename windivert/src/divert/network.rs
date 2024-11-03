@@ -135,14 +135,15 @@ mod tests {
     #[test]
     fn recv_ok() {
         let mut sys_wrapper = SysWrapper::default();
-        sys_wrapper
-            .expect_WinDivertRecv()
-            .returning(|_, pPacket, packetLen, pRecvLen, _| unsafe {
+        sys_wrapper.expect_WinDivertRecv().returning(
+            |_, pPacket, packetLen, pRecvLen, address| unsafe {
                 let mut buffer =
                     std::slice::from_raw_parts_mut(pPacket as *mut u8, packetLen as usize);
                 *pRecvLen = buffer.write(crate::test_data::ECHO_REQUEST).unwrap() as u32;
+                *address = WINDIVERT_ADDRESS::default();
                 1
-            });
+            },
+        );
         let divert = setup_divert(sys_wrapper);
         let mut buffer = vec![0; 1500];
         let packet = divert.recv(&mut buffer[..]);
@@ -154,14 +155,15 @@ mod tests {
     #[test]
     fn partial_recv_full() {
         let mut sys_wrapper = SysWrapper::default();
-        sys_wrapper
-            .expect_WinDivertRecv()
-            .returning(|_, pPacket, packetLen, pRecvLen, _| unsafe {
+        sys_wrapper.expect_WinDivertRecv().returning(
+            |_, pPacket, packetLen, pRecvLen, address| unsafe {
                 let mut buffer =
                     std::slice::from_raw_parts_mut(pPacket as *mut u8, packetLen as usize);
                 *pRecvLen = buffer.write(crate::test_data::ECHO_REQUEST).unwrap() as u32;
+                *address = WINDIVERT_ADDRESS::default();
                 1
-            });
+            },
+        );
         let divert = setup_divert(sys_wrapper);
         let mut buffer = vec![0; 1500];
         let packet = divert.partial_recv(&mut buffer[..]);
@@ -178,15 +180,16 @@ mod tests {
     #[test]
     fn partial_recv_partial() {
         let mut sys_wrapper = SysWrapper::default();
-        sys_wrapper
-            .expect_WinDivertRecv()
-            .returning(|_, pPacket, packetLen, pRecvLen, _| unsafe {
+        sys_wrapper.expect_WinDivertRecv().returning(
+            |_, pPacket, packetLen, pRecvLen, address| unsafe {
                 let mut buffer =
                     std::slice::from_raw_parts_mut(pPacket as *mut u8, packetLen as usize);
                 *pRecvLen = buffer.write(crate::test_data::ECHO_REQUEST).unwrap() as u32;
+                *address = WINDIVERT_ADDRESS::default();
                 SetLastError(windows::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER);
                 0
-            });
+            },
+        );
         let divert = setup_divert(sys_wrapper);
         let mut buffer = vec![0; crate::test_data::ECHO_REQUEST.len() - 10];
         let packet = divert.partial_recv(&mut buffer[..]);

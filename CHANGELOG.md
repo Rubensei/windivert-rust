@@ -22,7 +22,7 @@ and this project adheres to
 - `WinDivertError` has a `Send` variant
 - `WinDivert::recv()` and `WinDivert::recv_ex()` buffer made mandatory on data
   capturing layers and removed from non-capturing layers.
-- Bumped `windows-rs` to 0.51.1
+- Bumped `windows-rs` to 0.58.0
 - Code refactor and cleanup
 - Removed IOError variant from `WinDivertError`
 

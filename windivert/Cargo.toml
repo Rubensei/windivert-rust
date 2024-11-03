@@ -19,7 +19,7 @@ vendored = ["windivert-sys/vendored"]
 static = ["vendored", "windivert-sys/static"]
 
 [dependencies]
-etherparse = "0.15"
+etherparse = "0.16"
 thiserror = "1"
 windivert-sys = { version = "0.11.0-alpha.3", path = "../windivert-sys" }
 
