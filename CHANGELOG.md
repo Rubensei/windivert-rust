@@ -10,10 +10,11 @@ and this project adheres to
 
 ### Added
 
-- Add `wait` methods back
+- Add `wait` recv methods back
 - Partial single recv `WinDivert::partial_recv()`
 - `WinDivertSendError`
 - Add `WinDivert<()>::install(path: &Path)`
+- Internal abstractions over low level apis to facilitate testing
 
 ### Changed
 

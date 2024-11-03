@@ -1,6 +1,6 @@
 [package]
 name = "windivert"
-version = "0.7.0-alpha.2"
+version = "0.7.0-alpha.3"
 description = "Wrapper library around windivert-sys"
 authors = ["Ruben Serrano Izquierdo <rserranoizq@gmail.com>"]
 repository = "https://github.com/Rubensei/windivert-rust.git"
@@ -21,7 +21,7 @@ static = ["vendored", "windivert-sys/static"]
 [dependencies]
 etherparse = "0.15"
 thiserror = "1"
-windivert-sys = { version = "0.11.0-alpha.2", path = "../windivert-sys" }
+windivert-sys = { version = "0.11.0-alpha.3", path = "../windivert-sys" }
 
 [dev-dependencies]
 mockall = "0.13"
