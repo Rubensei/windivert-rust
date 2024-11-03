@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, u32};
+use std::convert::TryFrom;
 
 use super::WinDivertValueError;
 

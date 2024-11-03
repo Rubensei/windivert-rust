@@ -7,7 +7,6 @@ pub mod header;
 pub mod ioctl;
 
 mod bitfield;
-use std::ffi::c_void;
 
 pub(crate) use bitfield::BitfieldUnit;
 mod error;
@@ -15,10 +14,6 @@ pub use error::*;
 mod newtypes;
 pub use newtypes::*;
 
-use windows::Win32::{
-    Foundation::{BOOL, HANDLE},
-    System::IO::OVERLAPPED,
-};
 /// Default value for queue length parameter.
 pub const WINDIVERT_PARAM_QUEUE_LENGTH_DEFAULT: u64 = 4096;
 /// Minimum valid value for queue length parameter.
@@ -49,71 +44,77 @@ pub const WINDIVERT_MTU_MAX: u32 = 65575;
 extern "C" {
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_open)
     pub fn WinDivertOpen(
-        filter: *const ::std::os::raw::c_char,
+        filter: *const core::ffi::c_char,
         layer: WinDivertLayer,
         priority: i16,
         flags: WinDivertFlags,
-    ) -> HANDLE;
+    ) -> std::os::windows::raw::HANDLE;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_recv)
     pub fn WinDivertRecv(
-        handle: HANDLE,
-        pPacket: *mut ::std::os::raw::c_void,
+        handle: *mut core::ffi::c_void,
+        pPacket: *mut core::ffi::c_void,
         packetLen: u32,
         pRecvLen: *mut u32,
         pAddr: *mut address::WINDIVERT_ADDRESS,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_recv_ex)
     pub fn WinDivertRecvEx(
-        handle: HANDLE,
-        pPacket: *mut ::std::os::raw::c_void,
+        handle: *mut core::ffi::c_void,
+        pPacket: *mut core::ffi::c_void,
         packetLen: u32,
         pRecvLen: *mut u32,
         flags: u64,
         pAddr: *mut address::WINDIVERT_ADDRESS,
         pAddrLen: *mut u32,
-        lpOverlapped: *mut OVERLAPPED,
-    ) -> BOOL;
+        lpOverlapped: *mut core::ffi::c_void,
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_send)
     pub fn WinDivertSend(
-        handle: HANDLE,
-        pPacket: *const ::std::os::raw::c_void,
+        handle: *mut core::ffi::c_void,
+        pPacket: *const core::ffi::c_void,
         packetLen: u32,
         pSendLen: *mut u32,
         pAddr: *const address::WINDIVERT_ADDRESS,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_send_ex)
     pub fn WinDivertSendEx(
-        handle: HANDLE,
-        pPacket: *const ::std::os::raw::c_void,
+        handle: *mut core::ffi::c_void,
+        pPacket: *const core::ffi::c_void,
         packetLen: u32,
         pSendLen: *mut u32,
         flags: u64,
         pAddr: *const address::WINDIVERT_ADDRESS,
         addrLen: u32,
-        lpOverlapped: *mut OVERLAPPED,
-    ) -> BOOL;
+        lpOverlapped: *mut core::ffi::c_void,
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_shutdown)
-    pub fn WinDivertShutdown(handle: HANDLE, how: WinDivertShutdownMode) -> BOOL;
+    pub fn WinDivertShutdown(handle: *mut core::ffi::c_void, how: WinDivertShutdownMode) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_close)
-    pub fn WinDivertClose(handle: HANDLE) -> BOOL;
+    pub fn WinDivertClose(handle: *mut core::ffi::c_void) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_set_param)
-    pub fn WinDivertSetParam(handle: HANDLE, param: WinDivertParam, value: u64) -> BOOL;
+    pub fn WinDivertSetParam(
+        handle: *mut core::ffi::c_void,
+        param: WinDivertParam,
+        value: u64,
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_get_param)
-    pub fn WinDivertGetParam(handle: HANDLE, param: WinDivertParam, pValue: *mut u64) -> BOOL;
-}
+    pub fn WinDivertGetParam(
+        handle: *mut core::ffi::c_void,
+        param: WinDivertParam,
+        pValue: *mut u64,
+    ) -> i32;
 
-extern "C" {
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_parse_packet)
     pub fn WinDivertHelperParsePacket(
-        pPacket: *const ::std::os::raw::c_void,
+        pPacket: *const core::ffi::c_void,
         packetLen: u32,
         ppIpHdr: *mut header::PWINDIVERT_IPHDR,
         ppIpv6Hdr: *mut header::PWINDIVERT_IPV6HDR,
@@ -122,84 +123,81 @@ extern "C" {
         ppIcmpv6Hdr: *mut header::PWINDIVERT_ICMPV6HDR,
         ppTcpHdr: *mut header::PWINDIVERT_TCPHDR,
         ppUdpHdr: *mut header::PWINDIVERT_UDPHDR,
-        ppData: *mut c_void,
+        ppData: *mut core::ffi::c_void,
         pDataLen: *mut u32,
-        ppNext: *mut c_void,
+        ppNext: *mut core::ffi::c_void,
         pNextLen: *mut u32,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_hash_packet)
     pub fn WinDivertHelperHashPacket(
-        pPacket: *const ::std::os::raw::c_void,
+        pPacket: *const core::ffi::c_void,
         packetLen: u32,
         seed: u64,
     ) -> u64;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_parse_ipv4_address)
     pub fn WinDivertHelperParseIPv4Address(
-        addrStr: *const ::std::os::raw::c_char,
+        addrStr: *const core::ffi::c_char,
         pAddr: *mut u32,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_parse_ipv6_address)
     pub fn WinDivertHelperParseIPv6Address(
-        addrStr: *const ::std::os::raw::c_char,
+        addrStr: *const core::ffi::c_char,
         pAddr: *mut u32,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_format_ipv4_address)
     pub fn WinDivertHelperFormatIPv4Address(
         addr: u32,
-        buffer: *mut ::std::os::raw::c_char,
+        buffer: *mut core::ffi::c_char,
         bufLen: u32,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_format_ipv6_address)
     pub fn WinDivertHelperFormatIPv6Address(
         pAddr: *const u32,
-        buffer: *mut ::std::os::raw::c_char,
+        buffer: *mut core::ffi::c_char,
         bufLen: u32,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_calc_checksums)
     pub fn WinDivertHelperCalcChecksums(
-        pPacket: *mut ::std::os::raw::c_void,
+        pPacket: *mut core::ffi::c_void,
         packetLen: u32,
         pAddr: *mut address::WINDIVERT_ADDRESS,
         flags: ChecksumFlags,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_dec_ttl)
-    pub fn WinDivertHelperDecrementTTL(
-        pPacket: *mut ::std::os::raw::c_void,
-        packetLen: u32,
-    ) -> BOOL;
+    pub fn WinDivertHelperDecrementTTL(pPacket: *mut core::ffi::c_void, packetLen: u32) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_compile_filter)
     pub fn WinDivertHelperCompileFilter(
-        filter: *const ::std::os::raw::c_char,
+        filter: *const core::ffi::c_char,
         layer: WinDivertLayer,
-        object: *mut ::std::os::raw::c_char,
+        object: *mut core::ffi::c_char,
         objLen: u32,
-        errorStr: *mut *const ::std::os::raw::c_char,
+        errorStr: *mut *const core::ffi::c_char,
         errorPos: *mut u32,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_eval_filter)
     pub fn WinDivertHelperEvalFilter(
-        filter: *const ::std::os::raw::c_char,
-        pPacket: *const ::std::os::raw::c_void,
+        filter: *const core::ffi::c_char,
+        pPacket: *const core::ffi::c_void,
         packetLen: u32,
         pAddr: *const address::WINDIVERT_ADDRESS,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_format_filter)
     pub fn WinDivertHelperFormatFilter(
-        filter: *const ::std::os::raw::c_char,
+        filter: *const core::ffi::c_char,
         layer: WinDivertLayer,
-        buffer: *mut ::std::os::raw::c_char,
+        buffer: *mut core::ffi::c_char,
         bufLen: u32,
-    ) -> BOOL;
+    ) -> i32;
 
     /// Check the official [docs](https://reqrypt.org/windivert-doc.html#divert_helper_ntoh)
     pub fn WinDivertHelperNtohs(x: u16) -> u16;

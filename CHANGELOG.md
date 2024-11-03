@@ -10,23 +10,34 @@ and this project adheres to
 
 ### Added
 
-- Add `wait` methods back
+- Add `wait` recv methods back
 - Partial single recv `WinDivert::partial_recv()`
 - `WinDivertSendError`
+- Add `WinDivert<()>::install(path: &Path)`
+- Internal abstractions over low level apis to facilitate testing
 
 ### Changed
 
+- MSRV bumped to 1.74
 - `WinDivertError` has a `Send` variant
 - `WinDivert::recv()` and `WinDivert::recv_ex()` buffer made mandatory on data
-  capturing layers and removed from non capturing layers.
+  capturing layers and removed from non-capturing layers.
 - Bumped `windows-rs` to 0.51.1
 - Code refactor and cleanup
+- Removed IOError variant from `WinDivertError`
+
+### Fixed
+
+- All generic OS errors will be properly handled as `WinDivertError::OsError`
 
 ## [Unreleased-sys]
 
 ### Changed
 
-- Bumped `windows-rs` to 0.51.1
+- Remove `windows` to decouple this crate from `windows-sys`
+- Replace `std::os::raw` with `core::ffi`
+- Fix typo in enum variant name: `WinDivertEvent::FlowStablished` to
+  `WinDivertEvent::FlowEstablished`
 
 ## [0.6.0]
 

@@ -1,6 +1,6 @@
 [package]
 name = "windivert-sys"
-version = "0.11.0-alpha.1"
+version = "0.11.0-alpha.3"
 description = "Raw FFI bindings for WinDivert user mode library"
 authors = ["Ruben Serrano Izquierdo <rserranoizq@gmail.com>"]
 repository = "https://github.com/Rubensei/windivert-rust.git"
@@ -11,7 +11,7 @@ categories = ["external-ffi-bindings"]
 readme = "../README.md"
 license = "LGPL-3.0-or-later"
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.61"
 links = "WinDivert"
 build = "build/main.rs"
 
@@ -25,10 +25,6 @@ static = ["vendored"]
 
 [dependencies]
 thiserror = "1"
-
-[dependencies.windows]
-version = "0.51.1"
-features = ["Win32_Foundation", "Win32_System_IO"]
 
 [build-dependencies]
 cc = "1.0"
