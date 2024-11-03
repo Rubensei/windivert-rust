@@ -51,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        msrv: ["1.70"]
+        msrv: ["1.74"]
     steps:
       - uses: actions/checkout@v4
         with:

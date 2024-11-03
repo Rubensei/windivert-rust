@@ -18,6 +18,7 @@ and this project adheres to
 
 ### Changed
 
+- MSRV bumped to 1.74
 - `WinDivertError` has a `Send` variant
 - `WinDivert::recv()` and `WinDivert::recv_ex()` buffer made mandatory on data
   capturing layers and removed from non-capturing layers.
