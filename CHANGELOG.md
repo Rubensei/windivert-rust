@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [Unreleased-sys]
+
+## [0.7.0-beta.0] - 2024-12-08
+
 ### Added
 
 - Add `wait` recv methods back
@@ -30,7 +34,7 @@ and this project adheres to
 
 - All generic OS errors will be properly handled as `WinDivertError::OsError`
 
-## [Unreleased-sys]
+## [sys-0.11.0-beta.0] - 2024-12-08
 
 ### Changed
 
@@ -120,6 +124,8 @@ and this project adheres to
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...HEAD
 [unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...HEAD
+[0.7.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...windivert-0.7.0-beta.0
+[sys-0.11.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...windivert-sys-0.11.0-beta.0
 [0.6.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.5...windivert-0.6.0
 [sys-0.10.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.3...windivert-sys-0.10.0
 [sys-0.9.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.2...windivert-sys-0.9.3
