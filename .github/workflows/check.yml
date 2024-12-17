@@ -1,15 +1,17 @@
 permissions:
   contents: read
+
 on:
   push:
     branches: [master]
-  pull_request:
-    branches: [master]
+  pull_request: {}
   workflow_dispatch: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name || github.run_id }}
   cancel-in-progress: true
-name: check & test
+
+name: check
 jobs:
   check:
     runs-on: windows-latest
@@ -25,12 +27,20 @@ jobs:
           submodules: true
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
+        id: toolchain
         with:
           targets: x86_64-pc-windows-${{ matrix.compiler }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ steps.toolchain.outputs.cachekey }}-${{ matrix.compiler }}
       - name: cargo check
         run: cargo check --target x86_64-pc-windows-${{ matrix.compiler }} --features ${{ matrix.feature }}
       - name: cargo test
         run: cargo test --target x86_64-pc-windows-${{ matrix.compiler }} --features ${{ matrix.feature }}
+      - name: Semver checks
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          shared-key: ${{ steps.toolchain.outputs.cachekey }}-${{ matrix.compiler }}
   doc:
     runs-on: windows-latest
     name: docs / stable
@@ -40,6 +50,10 @@ jobs:
           submodules: true
       - name: Install stable
         uses: dtolnay/rust-toolchain@stable
+        id: toolchain
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ steps.toolchain.outputs.cachekey }}
       - name: cargo doc
         run: cargo doc --no-deps --all-features
         env:
@@ -58,7 +72,11 @@ jobs:
           submodules: true
       - name: Install stable
         uses: dtolnay/rust-toolchain@master
+        id: toolchain
         with:
           toolchain: ${{ matrix.msrv }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ steps.toolchain.outputs.cachekey }}
       - name: cargo +${{ matrix.msrv }} check
         run: cargo check --all-features
