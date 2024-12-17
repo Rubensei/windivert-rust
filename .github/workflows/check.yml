@@ -32,9 +32,11 @@ jobs:
           targets: x86_64-pc-windows-${{ matrix.compiler }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ steps.toolchain.outputs.cachekey }}
+          key: ${{ steps.toolchain.outputs.cachekey }}-${{ matrix.compiler }}
       - name: Semver checks
         uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          shared-key: ${{ steps.toolchain.outputs.cachekey }}-${{ matrix.compiler }}
       - name: cargo check
         run: cargo check --target x86_64-pc-windows-${{ matrix.compiler }} --features ${{ matrix.feature }}
   doc:
@@ -49,7 +51,7 @@ jobs:
         id: toolchain
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ steps.toolchain.outputs.cachekey }}-docs
+          key: ${{ steps.toolchain.outputs.cachekey }}
       - name: cargo doc
         run: cargo doc --no-deps --all-features
         env:
@@ -73,6 +75,6 @@ jobs:
           toolchain: ${{ matrix.msrv }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ steps.toolchain.outputs.cachekey }}-msvr
+          key: ${{ steps.toolchain.outputs.cachekey }}
       - name: cargo +${{ matrix.msrv }} check
         run: cargo check --all-features
