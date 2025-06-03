@@ -378,7 +378,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     }
 
     /// Shutdown function.
-    pub fn shutdown(&mut self, mode: WinDivertShutdownMode) -> Result<(), WinDivertError> {
+    pub fn shutdown(&self, mode: WinDivertShutdownMode) -> Result<(), WinDivertError> {
         Ok(unsafe { BOOL(sys::WinDivertShutdown(self.handle.0, mode)) }.ok()?)
     }
 }
