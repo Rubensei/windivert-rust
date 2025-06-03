@@ -8,8 +8,9 @@ impl WinDivert<ForwardLayer> {
         filter: impl AsRef<str>,
         priority: i16,
         flags: WinDivertFlags,
+        close_action: Option<CloseAction>
     ) -> Result<Self, WinDivertError> {
-        Self::new(filter.as_ref(), WinDivertLayer::Forward, priority, flags)
+        Self::new(filter.as_ref(), WinDivertLayer::Forward, priority, flags, close_action)
     }
 
     /// Single packet blocking recv function.

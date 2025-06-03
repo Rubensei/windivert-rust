@@ -55,6 +55,7 @@ pub struct WinDivert<L: layer::WinDivertLayerTrait> {
     handle: HANDLE,
     _tls_idx: u32,
     _layer: PhantomData<L>,
+    _close_action: Option<CloseAction>
 }
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
@@ -66,6 +67,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         layer: WinDivertLayer,
         priority: i16,
         flags: WinDivertFlags,
+        close_action: Option<CloseAction>
     ) -> Result<Self, WinDivertError> {
         let filter = CString::new(filter)?;
         let windivert_tls_idx = unsafe { TlsAlloc() };
@@ -78,6 +80,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 handle,
                 _tls_idx: windivert_tls_idx,
                 _layer: PhantomData::<L>,
+                _close_action: close_action
             })
         }
     }
@@ -368,6 +371,16 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         }
     }
 
+    /// Method that allows to receive the type of action that will be executed on handle dropping
+    pub fn get_close_action(&mut self) -> Option<CloseAction> {
+        return self._close_action
+    }
+
+    /// Method that allows to set the type of action that will be executed on handle dropping
+    pub fn set_close_action(&mut self, action: Option<CloseAction>) {
+        self._close_action = action
+    }
+
     /// Handle close function.
     pub fn close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
         unsafe { BOOL(sys::WinDivertClose(self.handle.0)) }.ok()?;
@@ -493,6 +506,14 @@ impl WinDivert<()> {
             CloseServiceHandle(manager)?;
         }
         Ok(())
+    }
+}
+
+impl Drop for WinDivert<_> {
+    fn drop(&mut self) {
+        if let Some(action) = self._close_action {
+            self.close(self._close_action)
+        }
     }
 }
 
