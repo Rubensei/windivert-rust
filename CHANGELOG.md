@@ -8,26 +8,45 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Changed `WinDivert::shutdown()` method to use a shared reference instead of a
+  mutable reference. (#16)
+
+## [Unreleased-sys]
+
+## [0.7.0-beta.0] - 2024-12-08
+
 ### Added
 
-- Add `wait` methods back
+- Add `wait` recv methods back
 - Partial single recv `WinDivert::partial_recv()`
 - `WinDivertSendError`
 - Add `WinDivert<()>::install(path: &Path)`
+- Internal abstractions over low level apis to facilitate testing
 
 ### Changed
 
+- MSRV bumped to 1.74
 - `WinDivertError` has a `Send` variant
 - `WinDivert::recv()` and `WinDivert::recv_ex()` buffer made mandatory on data
   capturing layers and removed from non-capturing layers.
-- Bumped `windows-rs` to 0.51.1
+- Bumped `windows-rs` to 0.58.0
 - Code refactor and cleanup
+- Removed IOError variant from `WinDivertError`
 
-## [Unreleased-sys]
+### Fixed
+
+- All generic OS errors will be properly handled as `WinDivertError::OsError`
+
+## [sys-0.11.0-beta.0] - 2024-12-08
 
 ### Changed
 
 - Remove `windows` to decouple this crate from `windows-sys`
+- Replace `std::os::raw` with `core::ffi`
+- Fix typo in enum variant name: `WinDivertEvent::FlowStablished` to
+  `WinDivertEvent::FlowEstablished`
 
 ## [0.6.0]
 
@@ -110,6 +129,8 @@ and this project adheres to
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...HEAD
 [unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...HEAD
+[0.7.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...windivert-0.7.0-beta.0
+[sys-0.11.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...windivert-sys-0.11.0-beta.0
 [0.6.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.5...windivert-0.6.0
 [sys-0.10.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.3...windivert-sys-0.10.0
 [sys-0.9.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.9.2...windivert-sys-0.9.3

@@ -33,17 +33,15 @@ impl<'a> WinDivertPacket<'a, layer::NetworkLayer> {
     /// This is a noop if the packet is not owned.
     pub fn recalculate_checksums(&mut self, flags: ChecksumFlags) -> Result<(), WinDivertError> {
         if let Cow::Owned(ref mut data) = self.data.borrow_mut() {
-            let res = unsafe {
+            unsafe {
                 BOOL(WinDivertHelperCalcChecksums(
                     data.as_mut_ptr() as *mut c_void,
                     data.len() as u32,
                     self.address.as_mut(),
                     flags,
                 ))
-            };
-            if !res.as_bool() {
-                return Err(WinDivertError::from(windows::core::Error::from_win32()));
             }
+            .ok()?;
         }
         Ok(())
     }
@@ -74,17 +72,15 @@ impl<'a> WinDivertPacket<'a, layer::ForwardLayer> {
     /// This is a noop if the packet is not owned.
     pub fn recalculate_checksums(&mut self, flags: ChecksumFlags) -> Result<(), WinDivertError> {
         if let Cow::Owned(ref mut data) = self.data.borrow_mut() {
-            let res = unsafe {
+            unsafe {
                 BOOL(WinDivertHelperCalcChecksums(
                     data.as_mut_ptr() as *mut c_void,
                     data.len() as u32,
                     self.address.as_mut(),
                     flags,
                 ))
-            };
-            if !res.as_bool() {
-                return Err(WinDivertError::from(windows::core::Error::from_win32()));
             }
+            .ok()?;
         }
         Ok(())
     }
