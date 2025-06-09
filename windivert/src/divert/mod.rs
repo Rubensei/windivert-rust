@@ -343,16 +343,6 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         }
     }
 
-    /// Method that allows to receive the type of action that will be executed on handle dropping
-    pub fn get_close_action(&mut self) -> Option<CloseAction> {
-        return self._close_action
-    }
-
-    /// Method that allows to set the type of action that will be executed on handle dropping
-    pub fn set_close_action(&mut self, action: Option<CloseAction>) {
-        self._close_action = action
-    }
-
     /// Handle close function.
     pub fn close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
         self._is_closed = true;
@@ -403,7 +393,7 @@ impl WinDivert<()> {
     }
 }
 
-impl Drop for WinDivert<_> {
+impl Drop<L: layer::WinDivertLayerTrait> for WinDivert<L> {
     fn drop(&mut self) {
         if !self._is_closed {
             self.close(CloseAction::Nothing)
