@@ -129,6 +129,7 @@ mod tests {
             tls_index: TlsIndex::alloc_tls().unwrap(),
             core: sys_wrapper,
             _layer: PhantomData::<NetworkLayer>,
+            _is_closed: false
         }
     }
 
