@@ -393,7 +393,7 @@ impl WinDivert<()> {
     }
 }
 
-impl Drop<L: layer::WinDivertLayerTrait> for WinDivert<L> {
+impl<L: layer::WinDivertLayerTrait> Drop for WinDivert<L> {
     fn drop(&mut self) {
         if !self._is_closed {
             self.close(CloseAction::Nothing)
