@@ -58,7 +58,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         filter: &str,
         layer: WinDivertLayer,
         priority: i16,
-        flags: WinDivertFlags
+        flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
         let filter = CString::new(filter)?;
         let windivert_tls_idx = TlsIndex::alloc_tls()?;

@@ -7,7 +7,7 @@ impl WinDivert<ForwardLayer> {
     pub fn forward(
         filter: impl AsRef<str>,
         priority: i16,
-        flags: WinDivertFlags
+        flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
         Self::new(filter.as_ref(), WinDivertLayer::Forward, priority, flags)
     }

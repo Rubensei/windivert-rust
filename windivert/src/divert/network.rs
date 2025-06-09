@@ -8,7 +8,7 @@ impl WinDivert<NetworkLayer> {
     pub fn network(
         filter: impl AsRef<str>,
         priority: i16,
-        flags: WinDivertFlags
+        flags: WinDivertFlags,
     ) -> Result<Self, WinDivertError> {
         Self::new(filter.as_ref(), WinDivertLayer::Network, priority, flags)
     }
