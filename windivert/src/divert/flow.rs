@@ -6,15 +6,13 @@ impl WinDivert<FlowLayer> {
     pub fn flow(
         filter: &str,
         priority: i16,
-        flags: WinDivertFlags,
-        close_action: Option<CloseAction>
+        flags: WinDivertFlags
     ) -> Result<Self, WinDivertError> {
         Self::new(
             filter,
             WinDivertLayer::Flow,
             priority,
-            flags.set_recv_only().set_sniff(),
-            close_action
+            flags.set_recv_only().set_sniff()
         )
     }
 
