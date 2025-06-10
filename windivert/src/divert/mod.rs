@@ -394,11 +394,14 @@ impl WinDivert<()> {
 }
 
 impl<L: layer::WinDivertLayerTrait> Drop for WinDivert<L> {
-    /// Try to close handle on drop; if handle can't be closed - nothing happens.
-    #[allow(unused_must_use)]
     fn drop(&mut self) {
         if !self._is_closed {
-            self.close(CloseAction::Nothing);
+            // SAFETY: Internal close should only fail if:
+            //   * Handle is closed: Checked
+            //   * Handle is invalid: Impossible with current API
+            //   * Permission issues: Impossible due to admin required for open
+            // It's safe to ignore the return value
+            let _ = self.close(CloseAction::Nothing);
         }
     }
 }
