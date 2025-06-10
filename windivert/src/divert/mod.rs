@@ -344,7 +344,12 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     }
 
     /// Handle close function.
-    pub fn close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
+    pub fn close(self, action: CloseAction) -> Result<(), WinDivertError> {
+        self.close(action)
+    }
+
+    /// Handle close function (internally, non-consuming).
+    pub fn inner_close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
         self._is_closed = true;
         unsafe { BOOL(WinDivertClose(self.handle.0)) }.ok()?;
         match action {
@@ -401,7 +406,7 @@ impl<L: layer::WinDivertLayerTrait> Drop for WinDivert<L> {
             //   * Handle is invalid: Impossible with current API
             //   * Permission issues: Impossible due to admin required for open
             // It's safe to ignore the return value
-            let _ = self.close(CloseAction::Nothing);
+            let _ = self.inner_close(CloseAction::Nothing);
         }
     }
 }
