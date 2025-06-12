@@ -345,7 +345,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
 
     /// Handle close function.
     pub fn close(self, action: CloseAction) -> Result<(), WinDivertError> {
-        self.close(action)
+        self.inner_close(action)
     }
 
     /// Handle close function (internally, non-consuming).
