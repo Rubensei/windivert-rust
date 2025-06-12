@@ -7,6 +7,8 @@ pub fn lib() {
     let mut build = Build::new();
     let out_dir = env::var("OUT_DIR").unwrap();
 
+    println!("cargo:rustc-link-lib=Advapi32");
+
     build
         .out_dir(&out_dir)
         .include(r"vendor\include")
