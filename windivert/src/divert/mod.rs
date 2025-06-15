@@ -47,6 +47,7 @@ pub struct WinDivert<L: layer::WinDivertLayerTrait> {
     tls_index: TlsIndex,
     core: SysWrapper,
     _layer: PhantomData<L>,
+    _is_closed: bool
 }
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
@@ -73,6 +74,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 tls_index: windivert_tls_idx,
                 core: sys_wrapper,
                 _layer: PhantomData::<L>,
+                _is_closed: false
             })
         }
     }
@@ -342,7 +344,13 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     }
 
     /// Handle close function.
-    pub fn close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
+    pub fn close(mut self, action: CloseAction) -> Result<(), WinDivertError> {
+        self.inner_close(action)
+    }
+
+    /// Handle close function (internally, non-consuming).
+    pub fn inner_close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
+        self._is_closed = true;
         unsafe { BOOL(WinDivertClose(self.handle.0)) }.ok()?;
         match action {
             CloseAction::Uninstall => WinDivert::uninstall(),
@@ -387,6 +395,19 @@ impl WinDivert<()> {
         let service = WinDivertDriverService::open(&manager)?;
         service.stop()?;
         Ok(())
+    }
+}
+
+impl<L: layer::WinDivertLayerTrait> Drop for WinDivert<L> {
+    fn drop(&mut self) {
+        if !self._is_closed {
+            // SAFETY: Internal close should only fail if:
+            //   * Handle is closed: Checked
+            //   * Handle is invalid: Impossible with current API
+            //   * Permission issues: Impossible due to admin required for open
+            // It's safe to ignore the return value
+            let _ = self.inner_close(CloseAction::Nothing);
+        }
     }
 }
 
