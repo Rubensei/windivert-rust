@@ -6,8 +6,9 @@ use std::{
     path::Path,
 };
 
-use windows::Win32::Foundation::{
-    BOOL, ERROR_IO_PENDING, ERROR_SERVICE_DOES_NOT_EXIST, HANDLE, WIN32_ERROR,
+use windows::{
+    core::BOOL,
+    Win32::Foundation::{ERROR_IO_PENDING, ERROR_SERVICE_DOES_NOT_EXIST, HANDLE, WIN32_ERROR},
 };
 
 use windivert_sys::{
@@ -47,8 +48,11 @@ pub struct WinDivert<L: layer::WinDivertLayerTrait> {
     tls_index: TlsIndex,
     core: SysWrapper,
     _layer: PhantomData<L>,
-    _is_closed: bool
+    _is_closed: bool,
 }
+
+unsafe impl<L: layer::WinDivertLayerTrait> Send for WinDivert<L> {}
+unsafe impl<L: layer::WinDivertLayerTrait> Sync for WinDivert<L> {}
 
 const ADDR_SIZE: usize = std::mem::size_of::<WINDIVERT_ADDRESS>();
 
@@ -74,7 +78,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 tls_index: windivert_tls_idx,
                 core: sys_wrapper,
                 _layer: PhantomData::<L>,
-                _is_closed: false
+                _is_closed: false,
             })
         }
     }
@@ -349,7 +353,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     }
 
     /// Handle close function (internally, non-consuming).
-    pub fn inner_close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
+    fn inner_close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
         self._is_closed = true;
         unsafe { BOOL(WinDivertClose(self.handle.0)) }.ok()?;
         match action {

@@ -96,7 +96,7 @@ impl WinDivertDriverService {
                 RegCreateKeyExW(
                     HKEY_LOCAL_MACHINE,
                     w!("System\\CurrentControlSet\\Services\\EventLog\\System\\WinDivert"),
-                    0,
+                    None,
                     None,
                     REG_OPTION_VOLATILE,
                     KEY_SET_VALUE,
@@ -112,7 +112,7 @@ impl WinDivertDriverService {
             RegSetValueExW(
                 key,
                 w!("EventMessageFile"),
-                0,
+                None,
                 REG_SZ,
                 Some(path.as_os_str().as_encoded_bytes()),
             )
@@ -120,7 +120,7 @@ impl WinDivertDriverService {
             RegSetValueExW(
                 key,
                 w!("TypesSupported"),
-                0,
+                None,
                 REG_DWORD,
                 Some(&7u32.to_le_bytes()),
             )

@@ -1,5 +1,5 @@
 use windivert_sys::{ChecksumFlags, WinDivertHelperCalcChecksums};
-use windows::Win32::Foundation::BOOL;
+use windows::core::BOOL;
 
 use crate::{address::WinDivertAddress, layer, prelude::WinDivertError};
 

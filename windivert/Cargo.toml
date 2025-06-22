@@ -11,7 +11,7 @@ categories = ["external-ffi-bindings"]
 readme = "../README.md"
 license = "LGPL-3.0-or-later"
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.83"
 
 [features]
 default = []
@@ -19,8 +19,8 @@ vendored = ["windivert-sys/vendored"]
 static = ["vendored", "windivert-sys/static"]
 
 [dependencies]
-etherparse = "0.16"
-thiserror = "1"
+etherparse = "0.18"
+thiserror = "2"
 windivert-sys = { version = "0.11.0-beta.0", path = "../windivert-sys" }
 
 [dev-dependencies]
@@ -28,7 +28,7 @@ mockall = "0.13"
 serial_test = "3"
 
 [dependencies.windows]
-version = "0.58"
+version = "0.61.3"
 features = [
 	"Devices_Custom",
 	"Win32_Devices",

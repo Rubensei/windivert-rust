@@ -61,11 +61,11 @@ jobs:
           RUSTDOCFLAGS: --cfg docsrs
   msrv:
     runs-on: windows-latest
-    name: msrv / ${{ matrix.msrv }}
+    name: MSRV
     strategy:
       fail-fast: false
       matrix:
-        msrv: ["1.74"]
+        msrv: ["1.83"]
     steps:
       - uses: actions/checkout@v4
         with:

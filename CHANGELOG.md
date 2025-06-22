@@ -8,12 +8,27 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add `Drop` implementation for `WinDivert` to automatically close the handle
+  when it goes out of scope.
+
 ### Changed
 
+- MSRV bumped to 1.83
+- Bump `windows` to 0.61
+- Bump `etherparse` to 0.18
+- Bump `thiserror` to 2.0
 - Changed `WinDivert::shutdown()` method to use a shared reference instead of a
   mutable reference. (#16)
+- Changed `WinDivert::close()` method to be consuming instead of using a mutable
+  reference. (#15)
 
 ## [Unreleased-sys]
+
+### Changed
+
+- Bump `thiserror` to 2.0
 
 ## [0.7.0-beta.0] - 2024-12-08
 
