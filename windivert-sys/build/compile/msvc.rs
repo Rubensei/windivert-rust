@@ -78,6 +78,7 @@ const DYNAMIC_CL_ARGS: &[&str] = &[
     r#"/Oi"#,
     r#"/EHsc"#,
     r#"/MDd"#,
+    r#"/GS-"#,
     r#"/fp:precise"#,
     r#"/Zc:wchar_t"#,
     r#"/Zc:forScope"#,
