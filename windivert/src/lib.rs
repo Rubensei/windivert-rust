@@ -28,14 +28,15 @@ let handle = std::thread::spawn(move || {
             Ok(packet) => {
                 // In capture mode the packet is captured and not calling `send()` with it will prevent it from reaching the destination.
                 divert_shared.send(&packet).expect("Failed to send packet");
-            }
+            },
             Err(WinDivertError::Recv(WinDivertRecvError::NoData)) => {
                 // Handle was shutdown, and there is no more pending data to receive
                 break;
-            }
+            },
             Err(e) => {
                 // Other errors
                 eprintln!("Error receiving packet: {}", e);
+            }
         }
     }
 });
