@@ -94,7 +94,7 @@ const DYNAMIC_CL_ARGS: &[&str] = &[
     r#"kernel32.lib"#,
     r#"advapi32.lib"#,
     r#"/NODEFAULTLIB"#,
-    r#"/DEF:vendor\dll\windivert.def"#,
+    r#"/DEF:vendor/dll/windivert.def"#,
     r#"/MANIFEST"#,
     r#"/manifest:embed"#,
     r#"/DEBUG:FASTLINK"#,
