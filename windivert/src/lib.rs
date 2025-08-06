@@ -9,7 +9,7 @@ For cases where a handle might need to be reused, `_wait` variants of the method
 These variants will wait at most the specified duration for the operation to complete, allowing the filtering thread to respond to other events in a timely manner.
 
 # Example
-```rust
+```no_run
 use windivert::prelude::*;
 
 let Ok(divert) = WinDivert::network("ip and tcp.DstPort == 443", 0, Default::default()) else {
