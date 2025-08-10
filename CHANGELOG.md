@@ -12,6 +12,10 @@ and this project adheres to
 
 - Add `Drop` implementation for `WinDivert` to automatically close the handle
   when it goes out of scope.
+- Add `ShutdownHandle` struct to improve multithreaded handle shutdown
+  ergonomics.
+- Add `WinDivert::shutdown_handle(&self)` to create a `ShutdownHandle` for the
+  current instance.
 
 ### Changed
 
@@ -21,8 +25,14 @@ and this project adheres to
 - Bump `thiserror` to 2.0
 - Changed `WinDivert::shutdown()` method to use a shared reference instead of a
   mutable reference. (#16)
-- Changed `WinDivert::close()` method to be consuming instead of using a mutable
-  reference. (#15)
+- Changed `WinDivert::close()` method to be consuming, and remove it's `action`
+  parameter.
+
+### Removed
+
+- Removed `CloseAction`
+- Removed `Windivert::shutdown()` method in favor of
+  `Windivert::shutdown_handle()`.
 
 ## [Unreleased-sys]
 

@@ -16,43 +16,38 @@ let Ok(divert) = WinDivert::network("ip and tcp.DstPort == 443", 0, Default::def
     panic!("Failed to create WinDivert");
 };
 
-let divert = std::sync::Arc::new(divert);
+let shutdown_handle = divert.shutdown_handle();
 
-let divert_shared = divert.clone();
 let handle = std::thread::spawn(move || {
     // Do something in the background
     let mut buffer = [0u8; 1500];
 
     loop {
-        match divert_shared.recv(&mut buffer) {
+        match divert.recv(&mut buffer) {
             Ok(packet) => {
                 // In capture mode the packet is captured and not calling `send()` with it will prevent it from reaching the destination.
-                divert_shared.send(&packet).expect("Failed to send packet");
-            },
+                divert.send(&packet).expect("Failed to send packet");
+            }
             Err(WinDivertError::Recv(WinDivertRecvError::NoData)) => {
                 // Handle was shutdown, and there is no more pending data to receive
                 break;
-            },
+            }
             Err(e) => {
                 // Other errors
                 eprintln!("Error receiving packet: {}", e);
             }
         }
     }
+    // The handle is implicitly closed once `divert` is dropped
 });
 
 std::thread::sleep(std::time::Duration::from_secs(10));
 
-divert
-    .shutdown(WinDivertShutdownMode::Both)
+shutdown_handle
+    .shutdown()
     .expect("Failed to shutdown WinDivert");
 
 handle.join().unwrap();
-
-std::sync::Arc::try_unwrap(divert)
-    .expect("Thread already finished, no references remaining")
-    .close(CloseAction::Nothing)
-    .expect("Failed to close WinDivert");
 ```
 */
 

@@ -125,11 +125,10 @@ mod tests {
 
     fn setup_divert(sys_wrapper: SysWrapper) -> WinDivert<NetworkLayer> {
         WinDivert {
-            handle: HANDLE(1usize as *mut c_void),
+            handle: Arc::new(HANDLE(1usize as *mut c_void)),
             tls_index: TlsIndex::alloc_tls().unwrap(),
             core: sys_wrapper,
             _layer: PhantomData::<NetworkLayer>,
-            _is_closed: false
         }
     }
 

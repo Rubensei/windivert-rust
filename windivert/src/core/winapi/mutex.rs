@@ -17,7 +17,7 @@ impl InstallMutex {
         Ok(Self { handle })
     }
 
-    pub fn lock(&mut self) -> Result<InstallMutexGuard, windows::core::Error> {
+    pub fn lock(&mut self) -> Result<InstallMutexGuard<'_>, windows::core::Error> {
         unsafe {
             match WaitForSingleObject(self.handle, INFINITE) {
                 WAIT_ABANDONED | WAIT_OBJECT_0 => {}

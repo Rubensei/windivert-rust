@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-pub(crate) fn prepare_internet_slice_data(slice: &[u8]) -> (&[u8], Cow<[u8]>) {
+pub(crate) fn prepare_internet_slice_data(slice: &[u8]) -> (&[u8], Cow<'_, [u8]>) {
     let headers = etherparse::SlicedPacket::from_ip(slice)
         .expect("WinDivert can't capture anything below ip");
     let offset = match headers.net.unwrap() {

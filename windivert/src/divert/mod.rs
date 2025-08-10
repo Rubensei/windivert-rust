@@ -4,6 +4,7 @@ use std::{
     marker::PhantomData,
     mem::MaybeUninit,
     path::Path,
+    sync::{Arc, Weak},
 };
 
 use windows::{
@@ -44,11 +45,10 @@ mod socket;
 #[non_exhaustive]
 #[derive(Debug)]
 pub struct WinDivert<L: layer::WinDivertLayerTrait> {
-    handle: HANDLE,
+    handle: Arc<HANDLE>,
     tls_index: TlsIndex,
     core: SysWrapper,
     _layer: PhantomData<L>,
-    _is_closed: bool,
 }
 
 unsafe impl<L: layer::WinDivertLayerTrait> Send for WinDivert<L> {}
@@ -74,11 +74,10 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             Err(open_err.into())
         } else {
             Ok(Self {
-                handle,
+                handle: Arc::new(handle),
                 tls_index: windivert_tls_idx,
                 core: sys_wrapper,
                 _layer: PhantomData::<L>,
-                _is_closed: false,
             })
         }
     }
@@ -348,23 +347,13 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     }
 
     /// Handle close function.
-    pub fn close(mut self, action: CloseAction) -> Result<(), WinDivertError> {
-        self.inner_close(action)
-    }
+    pub fn close(self) {}
 
-    /// Handle close function (internally, non-consuming).
-    fn inner_close(&mut self, action: CloseAction) -> Result<(), WinDivertError> {
-        self._is_closed = true;
-        unsafe { BOOL(WinDivertClose(self.handle.0)) }.ok()?;
-        match action {
-            CloseAction::Uninstall => WinDivert::uninstall(),
-            CloseAction::Nothing => Ok(()),
+    /// Returns a new ShutdownHandle that can be used to remotely shutdown WinDivert handle
+    pub fn shutdown_handle(&self) -> ShutdownHandle {
+        ShutdownHandle {
+            handle: Arc::downgrade(&self.handle),
         }
-    }
-
-    /// Shutdown function.
-    pub fn shutdown(&self, mode: WinDivertShutdownMode) -> Result<(), WinDivertError> {
-        Ok(unsafe { BOOL(WinDivertShutdown(self.handle.0, mode)) }.ok()?)
     }
 }
 
@@ -404,27 +393,24 @@ impl WinDivert<()> {
 
 impl<L: layer::WinDivertLayerTrait> Drop for WinDivert<L> {
     fn drop(&mut self) {
-        if !self._is_closed {
-            // SAFETY: Internal close should only fail if:
-            //   * Handle is closed: Checked
-            //   * Handle is invalid: Impossible with current API
-            //   * Permission issues: Impossible due to admin required for open
-            // It's safe to ignore the return value
-            let _ = self.inner_close(CloseAction::Nothing);
-        }
+        let _ = unsafe { BOOL(WinDivertClose(self.handle.0)) }.ok();
     }
 }
 
-/// Action parameter for  [`WinDivert::close()`](`fn@WinDivert::close`)
-pub enum CloseAction {
-    /// Close the handle and try to uninstall the WinDivert driver.
-    Uninstall,
-    /// Close the handle without uninstalling the driver.
-    Nothing,
+/// Struct that allows remote signaling the shutdown on the associated handle
+#[derive(Debug)]
+pub struct ShutdownHandle {
+    handle: Weak<HANDLE>,
 }
 
-impl Default for CloseAction {
-    fn default() -> Self {
-        Self::Nothing
+impl ShutdownHandle {
+    /// Shuts down the associated handle
+    /// This will prevent any further send, as well as stopping ongoing recv
+    /// Ongoing recv operations might not end immediately, all queued events/packets from the driver to the associated handle must be exhausted before reaching the `WinDivertRecvError::NoData` result.
+    pub fn shutdown(&self) -> Result<(), WinDivertError> {
+        if let Some(handle) = self.handle.upgrade() {
+            unsafe { BOOL(WinDivertShutdown(handle.0, WinDivertShutdownMode::Both)) }.ok()?;
+        };
+        Ok(())
     }
 }
