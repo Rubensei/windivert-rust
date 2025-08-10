@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [Unreleased-sys]
+
+## [0.7.0-beta.1] - 2025-08-10
+
 ### Added
 
 - Add `Drop` implementation for `WinDivert` to automatically close the handle
@@ -34,7 +38,7 @@ and this project adheres to
 - Removed `Windivert::shutdown()` method in favor of
   `Windivert::shutdown_handle()`.
 
-## [Unreleased-sys]
+## [sys-0.11.0-beta.1] - 2025-08-10
 
 ### Changed
 
@@ -154,6 +158,8 @@ and this project adheres to
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...HEAD
 [unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...HEAD
+[0.7.0-beta.1]: https://github.com/Rubensei/windivert-rust/compare/0.7.0-beta.0...0.7.0-beta.1
+[sys-0.11.0-beta.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.11.0-beta.0...windivert-sys-0.11.0-beta.1
 [0.7.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...windivert-0.7.0-beta.0
 [sys-0.11.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...windivert-sys-0.11.0-beta.0
 [0.6.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.5.5...windivert-0.6.0
