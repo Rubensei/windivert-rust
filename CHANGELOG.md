@@ -27,8 +27,6 @@ and this project adheres to
 - Bump `windows` to 0.61
 - Bump `etherparse` to 0.18
 - Bump `thiserror` to 2.0
-- Changed `WinDivert::shutdown()` method to use a shared reference instead of a
-  mutable reference. (#16)
 - Changed `WinDivert::close()` method to be consuming, and remove it's `action`
   parameter.
 
@@ -158,7 +156,7 @@ and this project adheres to
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...HEAD
 [unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...HEAD
-[0.7.0-beta.1]: https://github.com/Rubensei/windivert-rust/compare/0.7.0-beta.0...0.7.0-beta.1
+[0.7.0-beta.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.0...windivert-0.7.0-beta.1
 [sys-0.11.0-beta.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.11.0-beta.0...windivert-sys-0.11.0-beta.1
 [0.7.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...windivert-0.7.0-beta.0
 [sys-0.11.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...windivert-sys-0.11.0-beta.0
