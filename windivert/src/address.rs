@@ -249,7 +249,7 @@ impl WinDivertAddress<layer::FlowLayer> {
         self.data().parent_endpoint_id
     }
 
-    /// The parent endpoint ID of the flow
+    /// The process ID of the flow
     #[inline]
     pub fn process_id(&self) -> u32 {
         self.data().process_id
