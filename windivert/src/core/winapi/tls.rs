@@ -12,7 +12,7 @@ pub struct TlsIndex {
 impl TlsIndex {
     pub(crate) fn alloc_tls() -> windows::core::Result<TlsIndex> {
         match unsafe { TlsAlloc() } {
-            u32::MAX => Err(windows::core::Error::from_win32()),
+            u32::MAX => Err(windows::core::Error::from_thread()),
             index => Ok(TlsIndex { index }),
         }
     }

@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Add `shutdown_recv()` and `shutdown_send()` methods to `ShutdownHandle`.
+
 ### Changed
 
 - Added `ShutdownHandle` variant to `WinDivertSendError` to indicate that the

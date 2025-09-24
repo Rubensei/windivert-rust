@@ -21,7 +21,7 @@ impl InstallMutex {
         unsafe {
             match WaitForSingleObject(self.handle, INFINITE) {
                 WAIT_ABANDONED | WAIT_OBJECT_0 => {}
-                _ => return Err(windows::core::Error::from_win32()),
+                _ => return Err(windows::core::Error::from_thread()),
             }
         }
         Ok(InstallMutexGuard { mutex: self })

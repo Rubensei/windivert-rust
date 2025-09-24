@@ -70,7 +70,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         let handle =
             unsafe { HANDLE(sys_wrapper.WinDivertOpen(filter.as_ptr(), layer, priority, flags)) };
         if handle.is_invalid() {
-            let open_err = WinDivertOpenError::try_from(windows::core::Error::from_win32())?;
+            let open_err = WinDivertOpenError::try_from(windows::core::Error::from_thread())?;
             Err(open_err.into())
         } else {
             Ok(Self {
@@ -403,6 +403,8 @@ pub struct ShutdownHandle {
     handle: Weak<HANDLE>,
 }
 
+unsafe impl Send for ShutdownHandle {}
+
 impl ShutdownHandle {
     /// Shuts down the associated handle
     /// This will prevent any further send, as well as stopping ongoing recv
@@ -410,6 +412,23 @@ impl ShutdownHandle {
     pub fn shutdown(&self) -> Result<(), WinDivertError> {
         if let Some(handle) = self.handle.upgrade() {
             unsafe { BOOL(WinDivertShutdown(handle.0, WinDivertShutdownMode::Both)) }.ok()?;
+        };
+        Ok(())
+    }
+
+    /// Shuts down the associated handle so no new packets are queued
+    /// Ongoing recv operations might not end immediately, all queued events/packets from the driver to the associated handle must be exhausted before reaching the `WinDivertRecvError::NoData` result.
+    pub fn shutdown_recv(&self) -> Result<(), WinDivertError> {
+        if let Some(handle) = self.handle.upgrade() {
+            unsafe { BOOL(WinDivertShutdown(handle.0, WinDivertShutdownMode::Recv)) }.ok()?;
+        };
+        Ok(())
+    }
+
+    /// Shuts down the associated handle preventing any further send
+    pub fn shutdown_send(&self) -> Result<(), WinDivertError> {
+        if let Some(handle) = self.handle.upgrade() {
+            unsafe { BOOL(WinDivertShutdown(handle.0, WinDivertShutdownMode::Send)) }.ok()?;
         };
         Ok(())
     }

@@ -49,7 +49,7 @@ impl Overlapped {
                 }
                 _ => {
                     CancelIo(self.handle)?;
-                    Err(windows::core::Error::from_win32())
+                    Err(windows::core::Error::from_thread())
                 }
             }
         }
