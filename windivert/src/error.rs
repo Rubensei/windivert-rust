@@ -134,6 +134,9 @@ pub enum WinDivertSendError {
     /// WinDivert can't send more than [`WINDIVERT_BATCH_MAX`](windivert_sys::WINDIVERT_BATCH_MAX) packets at once.
     #[error("Provided packet slice is too large")]
     TooManyPackets,
+    /// WinDivert handle was shut down for send operations
+    #[error("WinDivert handle was shut down for send operations")]
+    ShutdownHandle,
     /// WinDivert will return this error if the TTL of an _impostor_ packet reaches 0.
     #[error("Host unreachable")]
     HostUnrachable, // 1232
@@ -148,6 +151,7 @@ impl TryFrom<windows::core::Error> for WinDivertSendError {
         };
         match win32_error {
             WIN32_ERROR(1232u32) => Ok(WinDivertSendError::HostUnrachable),
+            WIN32_ERROR(232u32) => Ok(WinDivertSendError::ShutdownHandle),
             _ => Err(error),
         }
     }

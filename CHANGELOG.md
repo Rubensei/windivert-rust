@@ -8,6 +8,11 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Added `ShutdownHandle` variant to `WinDivertSendError` to indicate that the
+  send operation was attempted on a handle that has been shutdown.
+
 ## [Unreleased-sys]
 
 ## [0.7.0-beta.1] - 2025-08-10
