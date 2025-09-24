@@ -38,19 +38,16 @@ impl WinDivert<FlowLayer> {
     }
 
     /// Single packet blocking recv function with timeout.
+    /// A timeout of 0 will return the queued data without blocking
     pub fn recv_wait<'a>(
         &self,
         timeout_ms: u32,
     ) -> Result<WinDivertPacket<'a, FlowLayer>, WinDivertError> {
-        if timeout_ms == 0 {
-            self.internal_recv(None)
-        } else {
-            self.internal_recv_wait_ex(None, 1, timeout_ms)
-                .map(|(data, addr)| WinDivertPacket {
-                    address: WinDivertAddress::<FlowLayer>::from_raw(addr[0]),
-                    data: data.unwrap_or_default().into(),
-                })
-        }
+        self.internal_recv_wait_ex(None, 1, timeout_ms)
+            .map(|(data, addr)| WinDivertPacket {
+                address: WinDivertAddress::<FlowLayer>::from_raw(addr[0]),
+                data: data.unwrap_or_default().into(),
+            })
     }
 
     /// Batched blocking recv function with timeout.

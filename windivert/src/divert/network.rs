@@ -67,20 +67,17 @@ impl WinDivert<NetworkLayer> {
     }
 
     /// Single packet blocking recv function with timeout.
+    /// A timeout of 0 will return the queued data without blocking
     pub fn recv_wait<'a>(
         &self,
         buffer: &'a mut [u8],
         timeout_ms: u32,
     ) -> Result<WinDivertPacket<'a, NetworkLayer>, WinDivertError> {
-        if timeout_ms == 0 {
-            self.internal_recv(Some(buffer))
-        } else {
-            self.internal_recv_wait_ex(Some(buffer), 1, timeout_ms)
-                .map(|(data, addr)| WinDivertPacket {
-                    address: WinDivertAddress::<NetworkLayer>::from_raw(addr[0]),
-                    data: data.unwrap_or_default().into(),
-                })
-        }
+        self.internal_recv_wait_ex(Some(buffer), 1, timeout_ms)
+            .map(|(data, addr)| WinDivertPacket {
+                address: WinDivertAddress::<NetworkLayer>::from_raw(addr[0]),
+                data: data.unwrap_or_default().into(),
+            })
     }
 
     /// Batched blocking recv function with timeout.
@@ -247,7 +244,7 @@ mod tests {
             let mut overlapped = Overlapped::default();
             overlapped
                 .expect_as_raw_mut()
-                .returning(|| (&mut 1u8 as *mut u8 as *mut c_void));
+                .returning(|| &mut 1u8 as *mut u8 as *mut c_void);
             overlapped
                 .expect_wait_for_object()
                 .returning(|_| Ok(Some(())));
@@ -286,7 +283,7 @@ mod tests {
             let mut overlapped = Overlapped::default();
             overlapped
                 .expect_as_raw_mut()
-                .returning(|| (&mut 1u8 as *mut u8 as *mut c_void));
+                .returning(|| &mut 1u8 as *mut u8 as *mut c_void);
             overlapped
                 .expect_wait_for_object()
                 .returning(|_| Ok(Some(())));

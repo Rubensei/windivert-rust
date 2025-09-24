@@ -66,20 +66,17 @@ impl WinDivert<ForwardLayer> {
     }
 
     /// Single packet blocking recv function with timeout.
+    /// A timeout of 0 will return the queued data without blocking
     pub fn recv_wait<'a>(
         &self,
         buffer: &'a mut [u8],
         timeout_ms: u32,
     ) -> Result<WinDivertPacket<'a, ForwardLayer>, WinDivertError> {
-        if timeout_ms == 0 {
-            self.internal_recv(Some(buffer))
-        } else {
-            self.internal_recv_wait_ex(Some(buffer), 1, timeout_ms)
-                .map(|(data, addr)| WinDivertPacket {
-                    address: WinDivertAddress::<ForwardLayer>::from_raw(addr[0]),
-                    data: data.unwrap_or_default().into(),
-                })
-        }
+        self.internal_recv_wait_ex(Some(buffer), 1, timeout_ms)
+            .map(|(data, addr)| WinDivertPacket {
+                address: WinDivertAddress::<ForwardLayer>::from_raw(addr[0]),
+                data: data.unwrap_or_default().into(),
+            })
     }
 
     /// Batched blocking recv function with timeout.

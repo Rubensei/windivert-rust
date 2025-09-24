@@ -16,6 +16,7 @@ and this project adheres to
 
 - Added `ShutdownHandle` variant to `WinDivertSendError` to indicate that the
   send operation was attempted on a handle that has been shutdown.
+- Make `rev_wait` variants not blocking when `timeout_ms` is `0`.
 
 ## [Unreleased-sys]
 
