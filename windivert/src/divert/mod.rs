@@ -250,13 +250,17 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         }
 
         if !overlapped.wait_for_object(timeout_ms)? {
-            if timeout_ms == 0 {
-                return Ok(None);
-            }
-            return Err(WinDivertError::Timeout);
+            return Ok(None);
         };
 
-        let packet_length = overlapped.get_result()?;
+        let packet_length = match overlapped.get_result() {
+            Err(err) => {
+                let recv_error = WinDivertRecvError::try_from(err)?;
+                return Err(recv_error.into());
+            }
+            Ok(0) => return Err(WinDivertRecvError::NoData.into()),
+            Ok(length) => length,
+        };
 
         addr_buffer.truncate((addr_len / ADDR_SIZE as u32) as usize);
         Ok(Some((

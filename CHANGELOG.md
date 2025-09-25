@@ -10,6 +10,20 @@ and this project adheres to
 
 ## [Unreleased-sys]
 
+## [0.7.0-beta.4] - 2025-09-25
+
+### Changed
+
+- Make `recv_wait` return `Ok(None)` whenever there is no queued data.
+
+### Fixed
+
+- Fix incorrect shutdown handling on non blocking `recv_wait` calls.
+
+### Removed
+
+- Removed `WinDivertError::Timeout`
+
 ## [0.7.0-beta.3] - 2025-09-25
 
 ### Changed
@@ -175,6 +189,7 @@ and this project adheres to
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...HEAD
 [unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...HEAD
+[0.7.0-beta.4]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.3...windivert-0.7.0-beta.4
 [0.7.0-beta.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.2...windivert-0.7.0-beta.3
 [0.7.0-beta.2]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.1...windivert-0.7.0-beta.2
 [0.7.0-beta.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.0...windivert-0.7.0-beta.1

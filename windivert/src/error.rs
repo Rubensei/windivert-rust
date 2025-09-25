@@ -31,9 +31,6 @@ pub enum WinDivertError {
     /// Error indicating that a wrong parameter was used in `WinDivert::set_param()`
     #[error("Invalid parameter for set_param(). Parameter: {0:?}, Value: {1}")]
     Parameter(WinDivertParam, u64),
-    /// Timeout error.
-    #[error("Wait operation timed out")]
-    Timeout,
 }
 
 /// Possible errors for [`WinDivertOpen()`](fn@windivert_sys::WinDivertOpen)
