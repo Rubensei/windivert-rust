@@ -39,13 +39,13 @@ impl Overlapped {
 
     /// Method that waits until the overlapped event is signaled
     /// It will return `Some` if the operation completed, and `None` if the timeout expired
-    pub fn wait_for_object(&self, timeout_ms: u32) -> Result<Option<()>, windows::core::Error> {
+    pub fn wait_for_object(&self, timeout_ms: u32) -> Result<bool, windows::core::Error> {
         unsafe {
             match WaitForSingleObject(self.inner.hEvent, timeout_ms) {
-                WAIT_OBJECT_0 => Ok(Some(())),
+                WAIT_OBJECT_0 => Ok(true),
                 WAIT_TIMEOUT => {
                     CancelIo(self.handle)?;
-                    Ok(None)
+                    Ok(false)
                 }
                 _ => {
                     CancelIo(self.handle)?;

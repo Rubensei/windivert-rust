@@ -68,25 +68,31 @@ impl WinDivert<ReflectLayer> {
         &self,
         buffer: &'a mut [u8],
         timeout_ms: u32,
-    ) -> Result<WinDivertPacket<'a, ReflectLayer>, WinDivertError> {
+    ) -> Result<Option<WinDivertPacket<'a, ReflectLayer>>, WinDivertError> {
         self.internal_recv_wait_ex(Some(buffer), 1, timeout_ms)
-            .map(|(data, addr)| WinDivertPacket {
-                address: WinDivertAddress::<ReflectLayer>::from_raw(addr[0]),
-                data: data.unwrap_or_default().into(),
+            .map(|result| {
+                let Some((data, addr)) = result else {
+                    return None;
+                };
+                Some(WinDivertPacket {
+                    address: WinDivertAddress::<ReflectLayer>::from_raw(addr[0]),
+                    data: data.unwrap_or_default().into(),
+                })
             })
     }
 
     /// Batched blocking recv function with timeout.
+    /// A timeout of 0 will return the queued data without blocking
     pub fn recv_wait_ex<'a>(
         &self,
         buffer: &'a mut [u8],
         packet_count: u8,
         timeout_ms: u32,
     ) -> Result<Vec<WinDivertPacket<'a, ReflectLayer>>, WinDivertError> {
-        let (mut buffer, addresses) = if timeout_ms == 0 {
-            self.internal_recv_ex(Some(buffer), packet_count)?
-        } else {
+        let Some((mut buffer, addresses)) =
             self.internal_recv_wait_ex(Some(buffer), packet_count, timeout_ms)?
+        else {
+            return Ok(Vec::new());
         };
         let mut packets = Vec::with_capacity(addresses.len());
         for addr in addresses.into_iter() {

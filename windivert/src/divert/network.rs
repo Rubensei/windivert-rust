@@ -72,25 +72,31 @@ impl WinDivert<NetworkLayer> {
         &self,
         buffer: &'a mut [u8],
         timeout_ms: u32,
-    ) -> Result<WinDivertPacket<'a, NetworkLayer>, WinDivertError> {
+    ) -> Result<Option<WinDivertPacket<'a, NetworkLayer>>, WinDivertError> {
         self.internal_recv_wait_ex(Some(buffer), 1, timeout_ms)
-            .map(|(data, addr)| WinDivertPacket {
-                address: WinDivertAddress::<NetworkLayer>::from_raw(addr[0]),
-                data: data.unwrap_or_default().into(),
+            .map(|result| {
+                let Some((data, addr)) = result else {
+                    return None;
+                };
+                Some(WinDivertPacket {
+                    address: WinDivertAddress::<NetworkLayer>::from_raw(addr[0]),
+                    data: data.unwrap_or_default().into(),
+                })
             })
     }
 
     /// Batched blocking recv function with timeout.
+    /// A timeout of 0 will return the queued data without blocking
     pub fn recv_wait_ex<'a>(
         &self,
         buffer: &'a mut [u8],
         packet_count: u8,
         timeout_ms: u32,
     ) -> Result<Vec<WinDivertPacket<'a, NetworkLayer>>, WinDivertError> {
-        let (mut buffer, addresses) = if timeout_ms == 0 {
-            self.internal_recv_ex(Some(buffer), packet_count)?
-        } else {
+        let Some((mut buffer, addresses)) =
             self.internal_recv_wait_ex(Some(buffer), packet_count, timeout_ms)?
+        else {
+            return Ok(Vec::new());
         };
         let mut packets = Vec::with_capacity(addresses.len());
         for addr in addresses.into_iter() {
@@ -245,9 +251,7 @@ mod tests {
             overlapped
                 .expect_as_raw_mut()
                 .returning(|| &mut 1u8 as *mut u8 as *mut c_void);
-            overlapped
-                .expect_wait_for_object()
-                .returning(|_| Ok(Some(())));
+            overlapped.expect_wait_for_object().returning(|_| Ok(true));
             overlapped
                 .expect_get_result()
                 .returning(|| Ok(crate::test_data::ECHO_REQUEST.len() as u32));
@@ -270,7 +274,7 @@ mod tests {
         let mut buffer = vec![0; 1500];
         let packet = divert.recv_wait(&mut buffer[..], 100);
         assert!(packet.is_ok());
-        let packet = packet.unwrap();
+        let packet = packet.unwrap().unwrap();
         assert_eq!(packet.data[..], crate::test_data::ECHO_REQUEST[..]);
     }
 
@@ -284,9 +288,7 @@ mod tests {
             overlapped
                 .expect_as_raw_mut()
                 .returning(|| &mut 1u8 as *mut u8 as *mut c_void);
-            overlapped
-                .expect_wait_for_object()
-                .returning(|_| Ok(Some(())));
+            overlapped.expect_wait_for_object().returning(|_| Ok(true));
             overlapped.expect_get_result().returning(|| {
                 Ok(crate::test_data::ECHO_REQUEST.len() as u32 * EX_TEST_PACKET_COUNT as u32)
             });

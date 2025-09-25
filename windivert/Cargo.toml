@@ -1,6 +1,6 @@
 [package]
 name = "windivert"
-version = "0.7.0-beta.2"
+version = "0.7.0-beta.3"
 description = "Wrapper library around windivert-sys"
 authors = ["Ruben Serrano Izquierdo <rserranoizq@gmail.com>"]
 repository = "https://github.com/Rubensei/windivert-rust.git"

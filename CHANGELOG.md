@@ -8,6 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [Unreleased-sys]
+
+## [0.7.0-beta.3] - 2025-09-25
+
+### Changed
+
+- Make `recv_wait_ex` not blocking when `timeout_ms` is `0`.
+- Change `recv_wait` return type. `Ok(None)` is returned when `timeout_ms` is 0 and there is no queued data
+
+## [0.7.0-beta.2] - 2025-09-24
+
 ### Added
 
 - Add `shutdown_recv()` and `shutdown_send()` methods to `ShutdownHandle`.
@@ -16,9 +27,7 @@ and this project adheres to
 
 - Added `ShutdownHandle` variant to `WinDivertSendError` to indicate that the
   send operation was attempted on a handle that has been shutdown.
-- Make `rev_wait` variants not blocking when `timeout_ms` is `0`.
-
-## [Unreleased-sys]
+- Make `recv_wait` not blocking when `timeout_ms` is `0`.
 
 ## [0.7.0-beta.1] - 2025-08-10
 
@@ -166,6 +175,8 @@ and this project adheres to
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...HEAD
 [unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...HEAD
+[0.7.0-beta.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.2...windivert-0.7.0-beta.3
+[0.7.0-beta.2]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.1...windivert-0.7.0-beta.2
 [0.7.0-beta.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.0...windivert-0.7.0-beta.1
 [sys-0.11.0-beta.1]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.11.0-beta.0...windivert-sys-0.11.0-beta.1
 [0.7.0-beta.0]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...windivert-0.7.0-beta.0

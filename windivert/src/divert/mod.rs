@@ -214,7 +214,7 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         buffer: Option<&'a mut [u8]>,
         packet_count: u8,
         timeout_ms: u32,
-    ) -> Result<(Option<&'a [u8]>, Vec<WINDIVERT_ADDRESS>), WinDivertError> {
+    ) -> Result<Option<(Option<&'a [u8]>, Vec<WINDIVERT_ADDRESS>)>, WinDivertError> {
         let mut addr_len = ADDR_SIZE as u32 * packet_count as u32;
         let mut addr_buffer: Vec<WINDIVERT_ADDRESS> =
             vec![WINDIVERT_ADDRESS::default(); packet_count as usize];
@@ -249,17 +249,20 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
             }
         }
 
-        let Some(_) = overlapped.wait_for_object(timeout_ms)? else {
+        if !overlapped.wait_for_object(timeout_ms)? {
+            if timeout_ms == 0 {
+                return Ok(None);
+            }
             return Err(WinDivertError::Timeout);
         };
 
         let packet_length = overlapped.get_result()?;
 
         addr_buffer.truncate((addr_len / ADDR_SIZE as u32) as usize);
-        Ok((
+        Ok(Some((
             buffer.map(|buffer| &buffer[..packet_length as usize]),
             addr_buffer,
-        ))
+        )))
     }
 
     pub(crate) fn internal_send(&self, packet: &WinDivertPacket<L>) -> Result<u32, WinDivertError> {
