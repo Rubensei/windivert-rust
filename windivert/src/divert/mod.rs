@@ -258,7 +258,9 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
                 let recv_error = WinDivertRecvError::try_from(err)?;
                 return Err(recv_error.into());
             }
-            Ok(0) => return Err(WinDivertRecvError::NoData.into()),
+            Ok(0) if L::captures_data() => {
+                return Err(WinDivertRecvError::NoData.into());
+            }
             Ok(length) => length,
         };
 

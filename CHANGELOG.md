@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix non capturing layers returning `WinDivertRecvError::NoData`
+
 ## [Unreleased-sys]
 
 ## [0.7.0-beta.4] - 2025-09-25

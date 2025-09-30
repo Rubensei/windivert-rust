@@ -1,5 +1,3 @@
-use windivert_sys::WinDivertLayer;
-
 /// Network type for typestate pattern.
 #[derive(Debug, Clone)]
 pub enum NetworkLayer {}
@@ -17,19 +15,30 @@ pub enum SocketLayer {}
 pub enum ReflectLayer {}
 
 /// Trait for typestate pattern.
-pub trait WinDivertLayerTrait: sealed::Sealed + std::fmt::Debug + std::clone::Clone {}
+pub trait WinDivertLayerTrait: sealed::Sealed + std::fmt::Debug + std::clone::Clone {
+    /// Utility method to identify data capturing layers in the typestate
+    fn captures_data() -> bool {
+        false
+    }
+}
 
-impl WinDivertLayerTrait for NetworkLayer {}
+impl WinDivertLayerTrait for NetworkLayer {
+    fn captures_data() -> bool {
+        true
+    }
+}
 
-impl WinDivertLayerTrait for ForwardLayer {}
+impl WinDivertLayerTrait for ForwardLayer {
+    fn captures_data() -> bool {
+        true
+    }
+}
 
 impl WinDivertLayerTrait for FlowLayer {}
 
 impl WinDivertLayerTrait for SocketLayer {}
 
 impl WinDivertLayerTrait for ReflectLayer {}
-
-impl WinDivertLayerTrait for WinDivertLayer {}
 
 impl WinDivertLayerTrait for () {}
 
@@ -42,5 +51,4 @@ mod sealed {
     impl Sealed for super::FlowLayer {}
     impl Sealed for super::SocketLayer {}
     impl Sealed for super::ReflectLayer {}
-    impl Sealed for super::WinDivertLayer {}
 }
