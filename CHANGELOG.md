@@ -10,7 +10,7 @@ and this project adheres to
 
 ### Fixed
 
-- Fix non capturing layers returning `WinDivertRecvError::NoData`
+- Fix non capturing layers returning `WinDivertRecvError::NoData` on wait variants of `recv`
 
 ## [Unreleased-sys]
 
