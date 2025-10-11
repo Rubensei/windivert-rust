@@ -14,6 +14,17 @@ and this project adheres to
 
 ## [Unreleased-sys]
 
+## [sys-0.11.0-beta.2] - 2025-10-11
+
+### Added
+
+- Add `BOOL` type alias to increase clarity in return types
+
+### Changed
+
+- Fix `WinDivertHelperParsePacket` signature (#23)
+- MSRV updated to 1.64
+
 ## [0.7.0-beta.4] - 2025-09-25
 
 ### Changed
@@ -192,7 +203,8 @@ and this project adheres to
 - Initial tagged release
 
 [unreleased]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.6.0...HEAD
-[unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.10.0...HEAD
+[unreleased-sys]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.11.0...HEAD
+[sys-0.11.0-beta.2]: https://github.com/Rubensei/windivert-rust/compare/windivert-sys-0.11.0-beta.1...windivert-sys-0.11.0-beta.2
 [0.7.0-beta.4]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.3...windivert-0.7.0-beta.4
 [0.7.0-beta.3]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.2...windivert-0.7.0-beta.3
 [0.7.0-beta.2]: https://github.com/Rubensei/windivert-rust/compare/windivert-0.7.0-beta.1...windivert-0.7.0-beta.2
