@@ -21,7 +21,7 @@ static = ["vendored", "windivert-sys/static"]
 [dependencies]
 etherparse = "0.18"
 thiserror = "2"
-windivert-sys = { version = "0.11.0-beta.0", path = "../windivert-sys" }
+windivert-sys = { version = "0.11.0-beta.2", path = "../windivert-sys" }
 
 [dev-dependencies]
 mockall = "0.13"
