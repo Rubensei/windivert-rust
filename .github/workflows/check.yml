@@ -61,22 +61,28 @@ jobs:
           RUSTDOCFLAGS: --cfg docsrs
   msrv:
     runs-on: windows-latest
-    name: MSRV
+    name: MSRV / ${{ matrix.crate }}
     strategy:
       fail-fast: false
       matrix:
-        msrv: ["1.83"]
+        include:
+          - crate: "windivert-sys"
+            msrv: "1.64"
+            path: "windivert-sys"
+          - crate: "windivert"
+            msrv: "1.83"
+            path: "windivert"
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - name: Install stable
+      - name: Install ${{ matrix.msrv }}
         uses: dtolnay/rust-toolchain@master
         id: toolchain
         with:
           toolchain: ${{ matrix.msrv }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ steps.toolchain.outputs.cachekey }}
-      - name: cargo +${{ matrix.msrv }} check
-        run: cargo check --all-features
+          key: ${{ steps.toolchain.outputs.cachekey }}-${{ matrix.crate }}
+      - name: cargo +${{ matrix.msrv }} check (${{ matrix.crate }})
+        run: cargo check --manifest-path ${{ matrix.path }}/Cargo.toml --all-features
