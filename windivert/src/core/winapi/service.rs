@@ -40,7 +40,7 @@ impl WinDivertDriverService {
     pub fn open(manager: &ScManager) -> Result<Self, windows::core::Error> {
         let handle = unsafe {
             OpenServiceW(
-                SC_HANDLE::from(manager),
+                manager.into(),
                 Self::WINDIVERT_DEVICE_NAME,
                 SERVICE_ALL_ACCESS,
             )?
@@ -58,7 +58,7 @@ impl WinDivertDriverService {
 
         let handle = unsafe {
             match CreateServiceW(
-                SC_HANDLE::from(manager),
+                manager.into(),
                 Self::WINDIVERT_DEVICE_NAME,
                 Self::WINDIVERT_DEVICE_NAME,
                 SERVICE_ALL_ACCESS,
@@ -76,7 +76,7 @@ impl WinDivertDriverService {
                 Err(error) => {
                     if let Some(ERROR_SERVICE_EXISTS) = WIN32_ERROR::from_error(&error) {
                         OpenServiceW(
-                            SC_HANDLE::from(manager),
+                            manager.into(),
                             Self::WINDIVERT_DEVICE_NAME,
                             SERVICE_ALL_ACCESS,
                         )
@@ -157,7 +157,11 @@ impl WinDivertDriverService {
 
     pub fn stop(&self) -> Result<(), windows::core::Error> {
         unsafe {
-            match ControlService(self.handle, SERVICE_CONTROL_STOP, std::ptr::null_mut()) {
+            match ControlService(
+                self.handle,
+                SERVICE_CONTROL_STOP,
+                MaybeUninit::uninit().as_mut_ptr(),
+            ) {
                 Err(error) => {
                     // The only scenario when a ControlService(SERVICE_CONTROL_STOP)  raises ERROR_SERVICE_CANNOT_ACCEPT_CTRL is if the service is STOP_PENDING
                     // It's safe to treat it as a success due to how this method is used
