@@ -14,6 +14,14 @@ and this project adheres to
 
 ## [Unreleased-sys]
 
+### Fixed
+
+- Fix a false error on `WinDivert::uninstall()`
+
+### Changed
+
+- MSRV updated to 1.68
+
 ## [sys-0.11.0-beta.2] - 2025-10-11
 
 ### Added

@@ -67,7 +67,7 @@ jobs:
       matrix:
         include:
           - crate: "windivert-sys"
-            msrv: "1.64"
+            msrv: "1.68"
             path: "windivert-sys"
           - crate: "windivert"
             msrv: "1.83"
