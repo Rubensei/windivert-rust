@@ -10,6 +10,10 @@ and this project adheres to
 
 ## [Unreleased-sys]
 
+### Fixed
+
+- Cross compilation path issues in `windivert-sys` gnu build script.
+
 ## [0.6.0]
 
 ### Added
