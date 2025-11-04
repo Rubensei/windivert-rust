@@ -16,6 +16,7 @@ and this project adheres to
 
 ### Fixed
 
+- Cross compilation path issues in `windivert-sys` gnu build script.
 - Fix a false error on `WinDivert::uninstall()`
 
 ### Changed

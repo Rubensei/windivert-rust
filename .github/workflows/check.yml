@@ -11,7 +11,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name || github.run_id }}
   cancel-in-progress: true
 
-name: check
+name: CI
 jobs:
   check:
     runs-on: windows-latest
@@ -41,6 +41,34 @@ jobs:
         uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
           shared-key: ${{ steps.toolchain.outputs.cachekey }}-${{ matrix.compiler }}
+
+  cross-compile:
+    runs-on: ubuntu-latest
+    name: GNU cross compilation / ${{matrix.feature}}
+    needs: [check]
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: [vendored, static]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install MinGW toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+        id: toolchain
+        with:
+          targets: x86_64-pc-windows-gnu
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ steps.toolchain.outputs.cachekey }}
+      - name: cargo check
+        run: cargo check --target x86_64-pc-windows-gnu --features ${{ matrix.feature }}
+
   doc:
     runs-on: windows-latest
     name: docs / stable
@@ -59,6 +87,7 @@ jobs:
         env:
           DOCS_RS: true
           RUSTDOCFLAGS: --cfg docsrs
+
   msrv:
     runs-on: windows-latest
     name: MSRV / ${{ matrix.crate }}
