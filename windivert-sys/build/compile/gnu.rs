@@ -1,4 +1,5 @@
 use cc::Build;
+use path_macro2::{path, path_const};
 use std::process::{Command, Stdio};
 use std::{env, fs};
 
@@ -8,8 +9,8 @@ pub fn lib() {
 
     build
         .out_dir(&out_dir)
-        .include(r#"vendor\include"#)
-        .file(r#"vendor\dll\windivert.c"#);
+        .include(path_const!(vendor / include))
+        .file(path_const!(vendor / dll / windivert.c));
 
     build.compile("WinDivert");
 }
@@ -28,16 +29,16 @@ pub fn dll() {
     };
     cmd.args(DYNAMIC_C_OPTIONS);
     cmd.arg(format!("-Wl,--entry=${mangle}WinDivertDllEntry"));
-    cmd.args(["-c", "vendor/dll/windivert.c"]);
-    cmd.args(["-o", &format!("{out_dir}/WinDivert.o")]);
+    cmd.args(["-c", path_const!(vendor / dll / windivert.c)]);
+    cmd.args(["-o", &path!({ out_dir } / WinDivert.o).to_string_lossy()]);
     cmd.output().expect("Error compiling windivert c library");
 
     let mut cmd = Build::new().get_compiler().to_command();
     cmd.args(DYNAMIC_C_OPTIONS);
-    cmd.args(["-o", &format!("{out_dir}/WinDivert.dll")]);
+    cmd.args(["-o", &path!({ out_dir } / WinDivert.dll).to_string_lossy()]);
     cmd.args([
-        &format!("{out_dir}/WinDivert.o"),
-        "vendor/dll/windivert.def",
+        &path!({ out_dir } / WinDivert.o).to_string_lossy(),
+        path_const!(vendor / dll / windivert.def),
         "-nostdlib",
     ]);
     cmd.args(DYNAMIC_C_INCLUDES);
@@ -52,7 +53,7 @@ pub fn dll() {
     let mut strip = Command::new(strip);
     strip.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
-    strip.arg(&format!("{out_dir}/WinDivert.dll"));
+    strip.arg(path!({ out_dir } / WinDivert.dll));
     let _ = strip.output().expect("Error striping windivert dll");
 
     let dlltool = Build::new()
@@ -62,13 +63,19 @@ pub fn dll() {
         .replace("gcc", "dlltool");
     let mut dlltool = Command::new(dlltool);
     dlltool.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-
-    dlltool.args(["--dllname", &format!("{out_dir}/WinDivert.dll")]);
-    dlltool.args(["--def", "vendor/dll/windivert.def"]);
-    dlltool.args(["--output-lib", &format!("{out_dir}/WinDivert.lib")]);
+    dlltool.args([
+        "--dllname",
+        &path!({ out_dir } / WinDivert.dll).to_string_lossy(),
+    ]);
+    dlltool.args(["--def", path_const!(vendor / dll / windivert.def)]);
+    dlltool.args([
+        "--output-lib",
+        &path!({ out_dir } / WinDivert.lib).to_string_lossy(),
+    ]);
     let _ = dlltool.output().expect("Error building windivert lib");
 
-    let _ = fs::remove_file(format!("{out_dir}/WinDivert.o"));
+    // Clean up object file
+    let _ = fs::remove_file(path!({ out_dir } / WinDivert.o));
 }
 
 const DYNAMIC_C_OPTIONS: &[&str] = &[
@@ -77,7 +84,7 @@ const DYNAMIC_C_OPTIONS: &[&str] = &[
     r#"-Wall"#,
     r#"-Wno-pointer-to-int-cast"#,
     r#"-Os"#,
-    r#"-Ivendor/include/"#,
+    concat!("-I", path_const!(vendor / include /)),
     r#"-Wl,--enable-stdcall-fixup"#,
 ];
 

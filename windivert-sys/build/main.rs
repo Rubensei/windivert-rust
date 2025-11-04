@@ -1,5 +1,6 @@
 mod compile;
 
+use path_macro2::path;
 use std::{env, fs};
 
 pub const LIB_PATH_ARG: &str = "WINDIVERT_PATH";
@@ -26,6 +27,14 @@ fn main() {
     // Prioritize environment variables over feature flags
     if env::var(STATIC_BUILD_ARG).is_ok() || cfg!(feature = "static") {
         println!("cargo:rerun-if-changed=wrapper.h");
+
+        // pull the git submodule
+        // ensure the submodule exists
+        std::process::Command::new("git")
+            .args(["submodule", "update", "--init"])
+            .output()
+            .expect("Failed to pull the git submodule");
+
         compile::lib();
 
         println!(
@@ -55,14 +64,17 @@ fn handle_provided_dll(arch: &str, out_dir: &str, lib_path: &str) {
         if let Some(name) = file.file_name().to_str() {
             match name {
                 "WinDivert.dll" | "WinDivert.lib" | "WinDivert32.sys" | "WinDivert64.sys" => {
-                    let _ = fs::copy(file.path(), format!("{out_dir}/{name}"));
+                    let src = file.path();
+                    let dst = path!({ out_dir } / { name });
+                    let _ = fs::copy(src, dst);
                 }
                 _ => {}
             }
         }
     }
 
-    if fs::metadata(format!("{lib_path}\\WinDivert{arch}.sys")).is_err() {
+    let sys_file = std::path::PathBuf::from(lib_path).join(format!("WinDivert{arch}.sys"));
+    if fs::metadata(&sys_file).is_err() {
         println!("cargo:warning=WinDivert{arch}.sys not found on the same directory as the dll.")
     }
 }

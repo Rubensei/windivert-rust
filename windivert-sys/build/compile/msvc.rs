@@ -1,4 +1,5 @@
 use cc::Build;
+use path_macro2::{path, path_const};
 use std::{env, fs};
 
 use crate::DLL_OUTPUT_PATH_ARG;
@@ -9,8 +10,8 @@ pub fn lib() {
 
     build
         .out_dir(&out_dir)
-        .include(r#"vendor\include"#)
-        .file(r#"vendor\dll\windivert.c"#);
+        .include(path_const!(vendor / include))
+        .file(path_const!(vendor / dll / windivert.c));
 
     for &flag in STATIC_CL_ARGS {
         build.flag(flag);
@@ -34,9 +35,18 @@ pub fn dll() {
 
     compiler.arg(&format!("/MACHINE:{arch}"));
 
-    compiler.arg(&format!(r#"/PDB:{out_dir}\WinDivertDll.pdb"#));
-    compiler.arg(&format!(r#"/OUT:{out_dir}\WinDivert.dll"#));
-    compiler.arg(&format!(r#"/IMPLIB:{out_dir}\WinDivert.lib"#));
+    compiler.arg(&format!(
+        "/PDB:{}",
+        &path!({ out_dir } / WinDivertDll.pdb).to_string_lossy()
+    ));
+    compiler.arg(&format!(
+        "/OUT:{}",
+        &path!({ out_dir } / WinDivert.dll).to_string_lossy()
+    ));
+    compiler.arg(&format!(
+        "/IMPLIB:{}",
+        &path!({ out_dir } / WinDivert.lib).to_string_lossy()
+    ));
 
     if let Ok(out) = compiler.output() {
         if !out.status.success() {
@@ -52,12 +62,12 @@ pub fn dll() {
 
     if let Ok(dylib_save_dir) = env::var(DLL_OUTPUT_PATH_ARG) {
         let _ = fs::copy(
-            format!(r#"{out_dir}\WinDivert.dll"#),
-            format!(r#"{dylib_save_dir}\WinDivert.dll"#),
+            path!({ out_dir } / WinDivert.dll),
+            path!({ dylib_save_dir } / WinDivert.dll),
         );
         let _ = fs::copy(
-            format!(r#"{out_dir}\WinDivert.lib"#),
-            format!(r#"{dylib_save_dir}\WinDivert.lib"#),
+            path!({ out_dir } / WinDivert.lib),
+            path!({ dylib_save_dir } / WinDivert.lib),
         );
     } else {
         println!("cargo:warning=Environment variable {DLL_OUTPUT_PATH_ARG} not found, compiled dll & lib files will be stored on {out_dir}");
@@ -65,7 +75,7 @@ pub fn dll() {
 }
 
 const DYNAMIC_CL_ARGS: &[&str] = &[
-    r#"/Ivendor\include"#,
+    concat!("/I", path_const!(vendor / include)),
     r#"/ZI"#,
     r#"/JMC"#,
     r#"/nologo"#,
@@ -86,7 +96,7 @@ const DYNAMIC_CL_ARGS: &[&str] = &[
     r#"/TC"#,
     r#"/FC"#,
     r#"/errorReport:queue"#,
-    r#"vendor\dll\windivert.c"#,
+    path_const!(vendor / dll / windivert.c),
     r#"/link"#,
     r#"/ERRORREPORT:QUEUE"#,
     r#"/INCREMENTAL"#,
@@ -94,7 +104,7 @@ const DYNAMIC_CL_ARGS: &[&str] = &[
     r#"kernel32.lib"#,
     r#"advapi32.lib"#,
     r#"/NODEFAULTLIB"#,
-    r#"/DEF:vendor/dll/windivert.def"#,
+    concat!("/DEF:", path_const!(vendor / dll / windivert.def)),
     r#"/MANIFEST"#,
     r#"/manifest:embed"#,
     r#"/DEBUG:FASTLINK"#,
