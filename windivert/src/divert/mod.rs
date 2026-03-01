@@ -111,6 +111,21 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
         }
         Ok(())
     }
+
+    /// Returns the underlying raw WinDivert `HANDLE`.
+    ///
+    /// This is intended for FFI interop scenarios where the raw handle must be
+    /// passed to Windows API functions from another thread — for example,
+    /// calling `WinDivertShutdown` to unblock a `recv` call that is blocked on
+    /// a different thread.
+    ///
+    /// # Safety contract
+    ///
+    /// The caller must ensure that the `WinDivert` instance outlives any use of
+    /// the returned handle.  The handle must not be closed by the caller.
+    pub fn as_raw_handle(&self) -> HANDLE {
+        self.handle
+    }
 }
 
 impl WinDivert<layer::NetworkLayer> {
