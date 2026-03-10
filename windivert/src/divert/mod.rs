@@ -18,7 +18,7 @@ use windows::{
         System::{
             Services::{
                 CloseServiceHandle, ControlService, OpenSCManagerA, OpenServiceA,
-                SC_MANAGER_ALL_ACCESS, SERVICE_CONTROL_STOP, SERVICE_STATUS,
+                SC_MANAGER_ALL_ACCESS, SERVICE_CONTROL_STOP,
             },
             Threading::{CreateEventA, TlsAlloc, TlsGetValue, TlsSetValue},
         },
@@ -60,10 +60,10 @@ impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     pub(crate) fn _get_event(tls_idx: u32) -> Result<HANDLE, WinDivertError> {
         let mut event = HANDLE::default();
         unsafe {
-            event.0 = TlsGetValue(tls_idx) as isize;
+            event.0 = TlsGetValue(tls_idx);
             if event.is_invalid() {
                 event = CreateEventA(None, false, false, None)?;
-                TlsSetValue(tls_idx, Some(event.0 as *mut c_void));
+                TlsSetValue(tls_idx, Some(event.0 as *const c_void))?;
             }
         }
         Ok(event)
@@ -189,26 +189,18 @@ impl WinDivert<()> {
 
     /// Method that tries to uninstall WinDivert driver.
     pub fn uninstall() -> WinResult<()> {
-        let status: *mut SERVICE_STATUS = MaybeUninit::uninit().as_mut_ptr();
+        let mut status = MaybeUninit::uninit();
         unsafe {
+            let status = status.as_mut_ptr();
             let manager = OpenSCManagerA(None, None, SC_MANAGER_ALL_ACCESS)?;
             let service = OpenServiceA(
                 manager,
                 PCSTR::from_raw("WinDivert".as_ptr()),
                 SC_MANAGER_ALL_ACCESS,
             )?;
-            let res = ControlService(service, SERVICE_CONTROL_STOP, status);
-            if !res.as_bool() {
-                return Err(WinError::from(GetLastError()));
-            }
-            let res = CloseServiceHandle(service);
-            if !res.as_bool() {
-                return Err(WinError::from(GetLastError()));
-            }
-            let res = CloseServiceHandle(manager);
-            if !res.as_bool() {
-                return Err(WinError::from(GetLastError()));
-            }
+            ControlService(service, SERVICE_CONTROL_STOP, status)?;
+            CloseServiceHandle(service)?;
+            CloseServiceHandle(manager)?;
         }
         Ok(())
     }

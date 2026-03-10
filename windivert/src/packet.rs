@@ -41,7 +41,7 @@ impl<'a> WinDivertPacket<'a, layer::NetworkLayer> {
                 )
             };
             if !res.as_bool() {
-                return Err(WinDivertError::from(windows::core::Error::from_win32()));
+                return Err(WinDivertError::from(windows::core::Error::from_thread()));
             }
         }
         Ok(())
@@ -72,7 +72,7 @@ impl<'a> WinDivertPacket<'a, layer::ForwardLayer> {
                 )
             };
             if !res.as_bool() {
-                return Err(WinDivertError::from(windows::core::Error::from_win32()));
+                return Err(WinDivertError::from(windows::core::Error::from_thread()));
             }
         }
         Ok(())

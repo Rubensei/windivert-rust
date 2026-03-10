@@ -15,8 +15,9 @@ pub use error::*;
 mod newtypes;
 pub use newtypes::*;
 
+use windows::core::BOOL;
 use windows::Win32::{
-    Foundation::{BOOL, HANDLE},
+    Foundation::HANDLE,
     System::IO::OVERLAPPED,
 };
 /// Default value for queue length parameter.

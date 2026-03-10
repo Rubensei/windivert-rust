@@ -18,11 +18,11 @@ static = ["vendored", "windivert-sys/static"]
 
 [dependencies]
 etherparse = "0.13"
-thiserror = "1"
+thiserror = "2"
 windivert-sys = { version = "0.10.0", path = "../windivert-sys" }
 
 [dependencies.windows]
-version = "0.48"
+version = "0.62"
 features = [
 	"Devices_Custom",
 	"Win32_Devices",
