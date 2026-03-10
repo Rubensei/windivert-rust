@@ -33,6 +33,11 @@ pub struct WinDivert<L: layer::WinDivertLayerTrait> {
     _layer: PhantomData<L>,
 }
 
+// SAFETY: HANDLE contains a *mut c_void (as of windows 0.58+) but represents
+// a Win32 kernel handle which is safe to send and share across threads.
+unsafe impl<L: layer::WinDivertLayerTrait> Send for WinDivert<L> {}
+unsafe impl<L: layer::WinDivertLayerTrait> Sync for WinDivert<L> {}
+
 /// Recv implementations
 impl<L: layer::WinDivertLayerTrait> WinDivert<L> {
     /// Open a handle using the specified parameters.
