@@ -5,11 +5,11 @@ use std::{
     marker::PhantomData,
     mem::MaybeUninit,
 };
-
 use crate::layer;
 use crate::prelude::*;
 use sys::{WinDivertParam, WinDivertShutdownMode};
 use windivert_sys as sys;
+use windows::core::s;
 
 use windows::{
     core::{Error as WinError, Result as WinResult, PCSTR},
@@ -194,7 +194,7 @@ impl WinDivert<()> {
             let manager = OpenSCManagerA(None, None, SC_MANAGER_ALL_ACCESS)?;
             let service = OpenServiceA(
                 manager,
-                PCSTR::from_raw("WinDivert".as_ptr()),
+                s!("WinDivert"),
                 SC_MANAGER_ALL_ACCESS,
             )?;
             let res = ControlService(service, SERVICE_CONTROL_STOP, status);
