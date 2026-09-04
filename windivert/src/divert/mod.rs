@@ -186,6 +186,8 @@ impl WinDivert<layer::ReflectLayer> {
 impl WinDivert<()> {
     /// Maximum number of packets that can be captured/sent in a single batched operation
     pub const MAX_BATCH: u8 = windivert_sys::WINDIVERT_BATCH_MAX as u8;
+    /// Maximum size of Windivert buffer
+    pub const MAX_PACKET_SIZE: usize = windivert_sys::WINDIVERT_MTU_MAX as usize;
 
     /// Method that tries to uninstall WinDivert driver.
     pub fn uninstall() -> WinResult<()> {
