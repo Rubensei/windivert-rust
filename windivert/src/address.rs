@@ -65,6 +65,12 @@ impl<L: layer::WinDivertLayerTrait> WinDivertAddress<L> {
         self.data.loopback()
     }
 
+    /// Loopback setter
+    #[inline]
+    pub fn set_loopback(&mut self, value: bool) {
+        self.data.set_loopback(value)
+    }
+
     ///  Set to `true` for impostor packets, `false` otherwise.
     #[inline]
     pub fn impostor(&self) -> bool {
